@@ -1,0 +1,19 @@
+packages:
+  - packages/*
+
+# Supply-chain protection - minimumReleaseAge is 7 days (10080 min), stricter than pnpm 11 default of 1 day.
+# https://pnpm.io/blog/releases/11.0
+# https://socket.dev/blog/pnpm-11-adds-new-supply-chain-protection-defaults
+minimumReleaseAge: 10080 # 7 days * 1440 min
+blockExoticSubdeps: true # explicit; matches v11 default
+
+# Build scripts: pnpm 11 requires explicit approval for dependencies that run install scripts.
+# Approved for Vite/Vitest toolchain (esbuild native binary, unrs-resolver postinstall).
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+
+# Migrated from package.json#pnpm (pnpm 11 no longer reads that field)
+overrides:
+  # GHSA-vmf3-w455-68vh / CVE-2026-53655 fixed in 7.5.16+
+  tar: 7.5.19
