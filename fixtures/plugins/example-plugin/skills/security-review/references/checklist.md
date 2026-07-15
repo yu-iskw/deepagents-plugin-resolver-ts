@@ -1,0 +1,3 @@
+- input validation
+- secret handling
+- dependency pinning

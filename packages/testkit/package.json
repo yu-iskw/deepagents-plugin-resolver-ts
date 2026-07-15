@@ -1,0 +1,35 @@
+{
+  "name": "@deepagents-plugins/testkit",
+  "version": "0.1.0",
+  "description": "Fixture builders and conformance tests for Deep Agents plugin resolvers and adapters.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/compiler": "workspace:*",
+    "@deepagents-plugins/schema": "workspace:*",
+    "tar": "catalog:"
+  },
+  "devDependencies": {
+    "@deepagents-plugins/policy": "workspace:*",
+    "@deepagents-plugins/resolver": "workspace:*",
+    "@types/node": "^22.20.1"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "example-marketplace",
+  "owner": "deepagents-plugins",
+  "plugins": [
+    {
+      "name": "example-plugin",
+      "source": "../../plugins/example-plugin",
+      "description": "Example plugin used for golden tests"
+    }
+  ]
+}

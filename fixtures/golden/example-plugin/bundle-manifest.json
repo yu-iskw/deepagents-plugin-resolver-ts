@@ -1,0 +1,30 @@
+{
+  "bundleDigest": "sha256:c022b369a5f85f542bbeedb2bfc00deb501eb438e1c1f08b7ca60ad73bc78a07",
+  "files": [
+    {
+      "path": "compatibility-report.json",
+      "sha256": "sha256:3b7a28db01462c1e512065e9beffe0b6850d1bb55a4be672145b1f70dd19122c"
+    },
+    {
+      "path": "ir/plugin-set.json",
+      "sha256": "sha256:201c8dc185893404ca667891f5980254d69b707dc067e13ee79c4726b2eaab2d"
+    },
+    {
+      "path": "plugins/example-plugin/manifest.json",
+      "sha256": "sha256:f28e4cff7d62ba8888b83e30ca746cd84da70ef91ca544b56fc7a919391dfed0"
+    },
+    {
+      "path": "provenance.json",
+      "sha256": "sha256:76c36fb5be55bd17862af79723e22b2c7ebc0b9181fc4ea44c24f348aa0b4154"
+    },
+    {
+      "path": "skills/example-plugin/security-review/references/checklist.md",
+      "sha256": "sha256:0c7478fc8cf8442c77c7d7e9c1404b2e6b604b6f53409b038dee02cb662e7bb8"
+    },
+    {
+      "path": "skills/example-plugin/security-review/SKILL.md",
+      "sha256": "sha256:ffc484cac3478da74bab3ac89dd97a7db8fbf672471770b7b435eb2c0bdcf305"
+    }
+  ],
+  "schemaVersion": 1
+}
