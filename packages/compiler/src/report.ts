@@ -1,7 +1,7 @@
-import type { CompatibilityDiagnosticV1, CompiledPluginSetV1 } from '@deepagents-plugins/schema';
+import type { CompatibilityDiagnosticV2, CompiledPluginSetV2 } from '@deepagents-plugins/schema';
 
 /** Human-readable compatibility report (RFC section 34). */
-export function renderCompatibilityReport(ir: CompiledPluginSetV1): string {
+export function renderCompatibilityReport(ir: CompiledPluginSetV2): string {
   const lines: string[] = [];
   for (const plugin of ir.plugins) {
     lines.push(
@@ -12,11 +12,51 @@ export function renderCompatibilityReport(ir: CompiledPluginSetV1): string {
     for (const skill of ir.skills.filter((entry) => entry.pluginId === plugin.id)) {
       lines.push(`[${skill.compatibility.toUpperCase()}]`, `  skills/${skill.originalName}`, '');
     }
-    for (const subagent of ir.subagents.filter((entry) => entry.pluginId === plugin.id)) {
+    for (const subagent of ir.syncSubagents.filter((entry) => entry.pluginId === plugin.id)) {
       lines.push(
         `[${subagent.compatibility.toUpperCase()}]`,
         `  agents/${subagent.name}`,
-        `  -> Deep Agents subagent "${subagent.id}"`,
+        `  -> synchronous Deep Agents subagent "${subagent.id}"`,
+        '',
+      );
+    }
+    for (const subagent of ir.asyncSubagents.filter((entry) => entry.pluginId === plugin.id)) {
+      lines.push(
+        `[${subagent.compatibility.toUpperCase()}]`,
+        `  agents/${subagent.name}`,
+        `  -> async Agent Protocol subagent "${subagent.id}" (${subagent.transport})`,
+        '',
+      );
+    }
+    for (const memory of ir.memorySources.filter((entry) => entry.pluginId === plugin.id)) {
+      lines.push(
+        `[${memory.compatibility.toUpperCase()}]`,
+        `  ${memory.path}`,
+        `  -> ${memory.access} ${memory.scope}-scoped memory source`,
+        '',
+      );
+    }
+    for (const profile of ir.harnessProfiles.filter((entry) => entry.pluginId === plugin.id)) {
+      lines.push(
+        `[${profile.compatibility.toUpperCase()}]`,
+        `  profiles/${profile.registrationKey}`,
+        `  -> harness profile fragment (governed fields only)`,
+        '',
+      );
+    }
+    for (const rubric of ir.rubricTemplates.filter((entry) => entry.pluginId === plugin.id)) {
+      lines.push(
+        `[${rubric.compatibility.toUpperCase()}]`,
+        `  rubrics/${rubric.name}`,
+        `  -> rubric template (host-governed activation)`,
+        '',
+      );
+    }
+    for (const policy of ir.interpreterPolicies.filter((entry) => entry.pluginId === plugin.id)) {
+      lines.push(
+        `[${policy.compatibility.toUpperCase()}]`,
+        `  interpreter.json`,
+        `  -> interpreter policy (enabled: ${policy.enabled})`,
         '',
       );
     }
@@ -32,9 +72,11 @@ export function renderCompatibilityReport(ir: CompiledPluginSetV1): string {
       );
     }
     for (const diagnostic of ir.diagnostics.filter(
-      (entry: CompatibilityDiagnosticV1) =>
+      (entry: CompatibilityDiagnosticV2) =>
         entry.pluginId === plugin.id &&
-        (entry.compatibility === 'unsupported' || entry.compatibility === 'blocked-by-policy'),
+        ['unsupported', 'blocked-by-policy', 'runtime-unavailable', 'requires-adapter', 'requires-approval'].includes(
+          entry.compatibility,
+        ),
     )) {
       lines.push(
         `[${diagnostic.compatibility.toUpperCase()}]`,
@@ -48,7 +90,7 @@ export function renderCompatibilityReport(ir: CompiledPluginSetV1): string {
 }
 
 /** Structured diagnostic rendering for the CLI (RFC section 27). */
-export function renderDiagnostic(diagnostic: CompatibilityDiagnosticV1): string {
+export function renderDiagnostic(diagnostic: CompatibilityDiagnosticV2): string {
   const lines = [
     `${diagnostic.code} [${diagnostic.compatibility}]`,
     `Plugin: ${diagnostic.pluginId}`,
@@ -61,7 +103,7 @@ export function renderDiagnostic(diagnostic: CompatibilityDiagnosticV1): string 
 }
 
 /** SARIF 2.1.0 export of diagnostics (RFC 24.2 --sarif). */
-export function renderSarif(ir: CompiledPluginSetV1): Record<string, unknown> {
+export function renderSarif(ir: CompiledPluginSetV2): Record<string, unknown> {
   return {
     $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
     version: '2.1.0',
@@ -69,8 +111,8 @@ export function renderSarif(ir: CompiledPluginSetV1): Record<string, unknown> {
       {
         tool: {
           driver: {
-            name: ir.generatedBy.name,
-            version: ir.generatedBy.version,
+            name: ir.compiler.name,
+            version: ir.compiler.version,
             rules: [],
           },
         },

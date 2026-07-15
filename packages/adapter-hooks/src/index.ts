@@ -1,9 +1,9 @@
 import {
   CLAUDE_BLOCKING_EVENTS,
   qualifiedComponentId,
-  type CompiledHookActionV1,
-  type CompiledHookV1,
-  type PortableHookEventV1,
+  type CompiledHookActionV2,
+  type CompiledHookV2,
+  type PortableHookEventV2,
 } from '@deepagents-plugins/schema';
 
 /**
@@ -14,7 +14,7 @@ import {
  * strings are never preserved.
  */
 
-const EVENT_MAP: Record<string, PortableHookEventV1 | undefined> = {
+const EVENT_MAP: Record<string, PortableHookEventV2 | undefined> = {
   PreToolUse: 'beforeToolCall',
   PostToolUse: 'afterToolCall',
   UserPromptSubmit: 'beforeAgentInvoke',
@@ -24,12 +24,12 @@ const EVENT_MAP: Record<string, PortableHookEventV1 | undefined> = {
 };
 
 export interface HookTranslation {
-  hook: CompiledHookV1;
+  hook: CompiledHookV2;
   /** Capability required by this hook's action type. */
   capability: 'hooks.middleware' | 'hooks.webhook' | 'hooks.command';
 }
 
-export function mapClaudeHookEvent(event: string): PortableHookEventV1 | undefined {
+export function mapClaudeHookEvent(event: string): PortableHookEventV2 | undefined {
   return EVENT_MAP[event];
 }
 
@@ -68,14 +68,14 @@ export function translateClaudeHook(
 
   // A hook that would block a tool call must come from a blocking-capable
   // Claude event; otherwise it is advisory only.
-  const event: PortableHookEventV1 =
+  const event: PortableHookEventV2 =
     portableEvent === 'beforeToolCall' && !CLAUDE_BLOCKING_EVENTS.has(claudeEvent)
       ? 'afterToolCall'
       : portableEvent;
 
-  let action: CompiledHookActionV1;
+  let action: CompiledHookActionV2;
   let capability: HookTranslation['capability'];
-  let compatibility: CompiledHookV1['compatibility'];
+  let compatibility: CompiledHookV2['compatibility'];
 
   if (definition.url) {
     capability = 'hooks.webhook';
@@ -111,7 +111,7 @@ export function translateClaudeHook(
 /* ------------------------- runtime middleware ------------------------- */
 
 export interface HookInvocation {
-  event: PortableHookEventV1;
+  event: PortableHookEventV2;
   pluginId: string;
   hookId: string;
   payload: unknown;

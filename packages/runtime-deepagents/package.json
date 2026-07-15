@@ -1,0 +1,42 @@
+{
+  "name": "@deepagents-plugins/runtime-deepagents",
+  "version": "0.1.0",
+  "description": "Deep Agents JS capability detection and runtime contributions for compiled plugin bundles.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/runtime": "workspace:*",
+    "@deepagents-plugins/schema": "workspace:*"
+  },
+  "peerDependencies": {
+    "deepagents": "*"
+  },
+  "peerDependenciesMeta": {
+    "deepagents": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@deepagents-plugins/compiler": "workspace:*",
+    "@deepagents-plugins/policy": "workspace:*",
+    "@types/node": "22.20.1"
+  }
+}

@@ -11,7 +11,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { loadCompiledPluginSet } from './load-bundle.js';
 import { createPluginRuntime } from './runtime.js';
 
-import type { CompiledMcpServerV1, LockedPlugin } from '@deepagents-plugins/schema';
+import type { CompiledMcpServerV2, LockedPlugin } from '@deepagents-plugins/schema';
 
 let tmpRoot: string;
 let bundleDir: string;
@@ -36,12 +36,14 @@ beforeAll(async () => {
 
   const locked: LockedPlugin = {
     id: 'demo@direct',
-    policyProfile: 'third-party-restricted',
+    trustPolicy: 'third-party-restricted',
     version: '1.0.0',
     source: { type: 'local', uri: pluginDir },
     pluginRoot: '.',
     contentDigest: 'sha256:' + 'a'.repeat(64),
     manifestDigest: 'sha256:' + 'b'.repeat(64),
+    detectedCapabilities: ['commands', 'skills'],
+    compilerProfile: 'claude-plugin-v2026-07',
     files: {},
   };
   const compiled = await compilePluginSet(
@@ -73,6 +75,10 @@ describe('loadCompiledPluginSet', () => {
     const bundle = await loadCompiledPluginSet({ directory: bundleDir });
     expect(bundle.compiled.skills).toHaveLength(1);
     expect(bundle.manifest.files.length).toBeGreaterThan(2);
+    expect(bundle.requiredCapabilities).toEqual([
+      { capability: 'skills', required: true, componentIds: ['demo:hello'] },
+      { capability: 'streamTransformers', required: false, componentIds: expect.any(Array) },
+    ]);
   });
 
   it('fails closed when a bundle file is tampered with', async () => {
@@ -146,8 +152,48 @@ describe('createPluginRuntime', () => {
   });
 });
 
+describe('adapter-gated components', () => {
+  it('emits runtime diagnostics and hides async subagents without adapters', async () => {
+    const bundle = await loadCompiledPluginSet({ directory: bundleDir });
+    const withAsync = {
+      ...bundle,
+      compiled: {
+        ...bundle.compiled,
+        asyncSubagents: [
+          {
+            id: 'demo:researcher',
+            pluginId: 'demo@direct',
+            name: 'researcher',
+            description: 'async researcher',
+            graphId: 'researcher',
+            transport: 'http' as const,
+            endpointRef: 'https://agents.internal.example.com/researcher',
+            allowedOperations: ['launch' as const, 'status' as const],
+            compatibility: 'requires-adapter' as const,
+          },
+        ],
+      },
+    };
+    const inert = createPluginRuntime({ bundle: withAsync });
+    expect(inert.asyncSubagents).toHaveLength(0);
+    expect(inert.runtimeDiagnostics).toHaveLength(1);
+    expect(inert.runtimeDiagnostics[0]).toMatchObject({
+      code: 'DAP4208',
+      compatibility: 'requires-adapter',
+      component: 'demo:researcher',
+    });
+
+    const active = createPluginRuntime({
+      bundle: withAsync,
+      registeredAdapters: ['asyncSubagents'],
+    });
+    expect(active.asyncSubagents).toHaveLength(1);
+    expect(active.runtimeDiagnostics).toHaveLength(0);
+  });
+});
+
 describe('wrapPluginTool', () => {
-  const server: CompiledMcpServerV1 = {
+  const server: CompiledMcpServerV2 = {
     id: 'demo:github',
     pluginId: 'demo@direct',
     transport: 'streamable-http',

@@ -6,13 +6,14 @@ import {
   BUNDLE_MANIFEST_NAME,
   COMPATIBILITY_REPORT_NAME,
   IR_RELATIVE_PATH,
+  PROFILES_RELATIVE_PATH,
   PROVENANCE_NAME,
   SBOM_NAME,
   canonicalJsonStringify,
   sha256DigestOfFile,
   sha256DigestOfJson,
   type BundleManifest,
-  type CompiledPluginSetV1,
+  type CompiledPluginSetV2,
 } from '@deepagents-plugins/schema';
 
 import type { CompileResult } from './compile-plugin-set.js';
@@ -75,6 +76,15 @@ export async function writeBundle(
     canonicalJsonStringify({ provenance: compiled.ir.provenance }),
     'utf8',
   );
+  if (compiled.ir.harnessProfiles.length > 0) {
+    const profilesPath = path.join(outputDir, PROFILES_RELATIVE_PATH);
+    await fs.mkdir(path.dirname(profilesPath), { recursive: true });
+    await fs.writeFile(
+      profilesPath,
+      canonicalJsonStringify({ harnessProfiles: compiled.ir.harnessProfiles }),
+      'utf8',
+    );
+  }
 
   // 3. Optional CycloneDX SBOM.
   if (options.emitSbom) {
@@ -105,7 +115,7 @@ export async function writeBundle(
   files.sort((a, b) => a.path.localeCompare(b.path));
 
   const manifest: BundleManifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     bundleDigest: sha256DigestOfJson(files),
     files,
   };
@@ -127,13 +137,13 @@ export async function writeBundle(
   return { bundleDigest: manifest.bundleDigest, manifest };
 }
 
-function buildSbom(ir: CompiledPluginSetV1): Record<string, unknown> {
+function buildSbom(ir: CompiledPluginSetV2): Record<string, unknown> {
   return {
     bomFormat: 'CycloneDX',
     specVersion: '1.5',
     version: 1,
     metadata: {
-      tools: [{ name: ir.generatedBy.name, version: ir.generatedBy.version }],
+      tools: [{ name: ir.compiler.name, version: ir.compiler.version }],
     },
     components: ir.plugins.map((plugin) => ({
       type: 'library',
@@ -144,7 +154,7 @@ function buildSbom(ir: CompiledPluginSetV1): Record<string, unknown> {
       hashes: [{ alg: 'SHA-256', content: plugin.contentDigest.replace('sha256:', '') }],
       properties: [
         { name: 'deepagents:sourceType', value: plugin.source.type },
-        { name: 'deepagents:policyProfile', value: plugin.policyProfile },
+        { name: 'deepagents:trustPolicy', value: plugin.trustPolicy },
       ],
     })),
   };
