@@ -331,7 +331,7 @@ describe('resolvePluginSet end to end (local + marketplace)', () => {
     );
 
     const manifest = {
-      apiVersion: 'deepagents.plugins/v1' as const,
+      apiVersion: 'deepagents.plugins/v2' as const,
       kind: 'PluginSet' as const,
       metadata: { name: 'test-set' },
       marketplaces: [{ name: 'test-market', source: { type: 'local' as const, path: './market' } }],
@@ -363,8 +363,20 @@ describe('resolvePluginSet end to end (local + marketplace)', () => {
       'from-market',
     ]);
 
+    expect(result.lockfile.lockfileVersion).toBe(2);
+    expect(result.lockfile.plugins[0]?.trustPolicy).toBe('third-party-restricted');
+    expect(result.lockfile.plugins[0]?.detectedCapabilities).toEqual(['skills']);
+    expect(result.lockfile.plugins[0]?.compilerProfile).toMatch(/^claude-plugin-/);
+
     const rerun = await resolvePluginSet(manifest, builtinResolvers(), context);
     expect(() => assertLockfilesMatch(result.lockfile, rerun.lockfile)).not.toThrow();
+
+    const capabilityDrift = structuredClone(result.lockfile);
+    const driftPlugin = capabilityDrift.plugins[0];
+    if (driftPlugin) driftPlugin.detectedCapabilities = ['skills', 'mcp'];
+    expect(() => assertLockfilesMatch(result.lockfile, capabilityDrift)).toThrow(
+      /detected capabilities changed/,
+    );
 
     const tampered = structuredClone(result.lockfile);
     const firstPlugin = tampered.plugins[0];

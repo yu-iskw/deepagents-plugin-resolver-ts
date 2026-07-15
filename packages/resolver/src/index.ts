@@ -1,5 +1,6 @@
 export * from './config.js';
 export * from './context.js';
+export * from './detect-capabilities.js';
 export * from './directory-digest.js';
 export * from './git.js';
 export * from './http.js';

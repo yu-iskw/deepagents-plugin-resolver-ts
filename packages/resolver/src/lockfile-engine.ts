@@ -46,11 +46,29 @@ export function assertLockfilesMatch(expected: Lockfile, actual: Lockfile): void
       marketplaces: [...lock.marketplaces].sort((a, b) => a.name.localeCompare(b.name)),
       plugins: [...lock.plugins].sort((a, b) => a.id.localeCompare(b.id)),
     });
-  if (normalize(expected) !== normalize(actual)) {
+  if (normalize(expected) === normalize(actual)) return;
+
+  // New detected capabilities require review (RFC v2 section 9).
+  const capabilityDrift = actual.plugins.filter((plugin) => {
+    const before = expected.plugins.find((candidate) => candidate.id === plugin.id);
+    return (
+      before !== undefined &&
+      canonicalJsonStringify(before.detectedCapabilities) !==
+        canonicalJsonStringify(plugin.detectedCapabilities)
+    );
+  });
+  if (capabilityDrift.length > 0) {
     throw new PluginResolutionError(
-      'Frozen lockfile verification failed: resolved plugin set differs from deepagents.plugins.lock.json',
+      `Frozen lockfile verification failed: detected capabilities changed for ${capabilityDrift
+        .map((plugin) => plugin.id)
+        .join(', ')}`,
       ExitCodes.IntegrityMismatch,
-      'Run "deepagents-plugins resolve" without --frozen-lockfile to update the lockfile, then review the diff.',
+      'Review the new capabilities, then re-run "deepagents-plugins resolve" without --frozen-lockfile to accept them.',
     );
   }
+  throw new PluginResolutionError(
+    'Frozen lockfile verification failed: resolved plugin set differs from deepagents.plugins.lock.json',
+    ExitCodes.IntegrityMismatch,
+    'Run "deepagents-plugins resolve" without --frozen-lockfile to update the lockfile, then review the diff.',
+  );
 }

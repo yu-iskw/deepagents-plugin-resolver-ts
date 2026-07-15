@@ -47,6 +47,7 @@ export const skillFrontmatterSchema = z
     description: z.string().min(1),
     license: z.string().optional(),
     'allowed-tools': z.union([z.string(), z.array(z.string())]).optional(),
+    permissions: z.union([z.string(), z.array(z.string())]).optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .loose();
@@ -58,9 +59,72 @@ export const agentFrontmatterSchema = z
     description: z.string().min(1),
     tools: z.union([z.string(), z.array(z.string())]).optional(),
     model: z.string().optional(),
+    memory: z.union([z.string(), z.array(z.string())]).optional(),
+    async: z.boolean().optional(),
+    endpoint: z.string().optional(),
   })
   .loose();
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
+
+export const memoryFrontmatterSchema = z
+  .object({
+    name: z.string().optional(),
+    description: z.string().optional(),
+    kind: z
+      .enum(['static-instructions', 'procedural', 'episodic-template', 'organization-template'])
+      .optional(),
+    loadMode: z.enum(['startup', 'on-demand']).optional(),
+    scope: z.enum(['agent', 'user', 'tenant', 'organization']).optional(),
+    access: z.enum(['read-only', 'read-write']).optional(),
+  })
+  .loose();
+export type MemoryFrontmatter = z.infer<typeof memoryFrontmatterSchema>;
+
+/** Plugin-shipped harness profile fragment `profiles/*.json` (untrusted). */
+export const claudeProfileFileSchema = z
+  .object({
+    registrationKey: z.string().optional(),
+    priority: z.number().int().optional(),
+    baseSystemPrompt: z.string().optional(),
+    systemPromptSuffix: z.string().optional(),
+    toolDescriptionOverrides: z.record(z.string(), z.string()).optional(),
+    excludedTools: z.array(z.string()).optional(),
+    excludedMiddleware: z.array(z.string()).optional(),
+    generalPurposeSubagent: z
+      .object({
+        enabled: z.boolean().optional(),
+        description: z.string().optional(),
+        systemPrompt: z.string().optional(),
+      })
+      .optional(),
+  })
+  .loose();
+export type ClaudeProfileFile = z.infer<typeof claudeProfileFileSchema>;
+
+/** Plugin-shipped rubric template `rubrics/*.json` (untrusted). */
+export const claudeRubricFileSchema = z
+  .object({
+    name: z.string().optional(),
+    criteria: z.array(z.string()).min(1),
+    recommendedGraderModel: z.string().optional(),
+    maxIterations: z.number().int().positive().optional(),
+    dataPolicy: z.object({ allowExternalGrader: z.boolean().optional() }).loose().optional(),
+  })
+  .loose();
+export type ClaudeRubricFile = z.infer<typeof claudeRubricFileSchema>;
+
+/** Plugin-shipped interpreter request `interpreter.json` (untrusted). */
+export const claudeInterpreterFileSchema = z
+  .object({
+    persistence: z.enum(['thread', 'turn', 'call']).optional(),
+    memoryLimitBytes: z.number().int().positive().optional(),
+    timeoutMs: z.number().int().positive().optional(),
+    maxResultChars: z.number().int().positive().optional(),
+    ptcTools: z.array(z.string()).optional(),
+    dynamicSubagents: z.array(z.string()).optional(),
+  })
+  .loose();
+export type ClaudeInterpreterFile = z.infer<typeof claudeInterpreterFileSchema>;
 
 export const commandFrontmatterSchema = z
   .object({

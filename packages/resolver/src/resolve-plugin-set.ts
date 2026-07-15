@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  COMPILER_PROFILE,
   ExitCodes,
   PluginResolutionError,
   claudePluginManifestSchema,
@@ -11,19 +12,20 @@ import {
   sha256DigestOfJson,
   type ClaudePluginManifest,
   type LockedPlugin,
-  type LockedSourceV1,
+  type LockedSourceV2,
   type Lockfile,
   type MarketplaceManifest,
   type PluginSetManifest,
   type PluginSourceSpec,
 } from '@deepagents-plugins/schema';
 
+import { detectPluginCapabilities } from './detect-capabilities.js';
 import { digestDirectory } from './directory-digest.js';
 import { marketplaceEntryToSourceSpec, readMarketplaceManifest } from './marketplace.js';
 
 import type { PluginSourceResolver, ResolveContext, ResolvedPluginSource } from './context.js';
 
-export const RESOLVER_VERSION = '0.1.0';
+export const RESOLVER_VERSION = '0.2.0';
 
 export interface ResolvedPluginArtifact {
   locked: LockedPlugin;
@@ -52,7 +54,7 @@ function findResolver(
   return resolver;
 }
 
-function toLockedSource(resolved: ResolvedPluginSource): LockedSourceV1 {
+function toLockedSource(resolved: ResolvedPluginSource): LockedSourceV2 {
   return {
     type: resolved.sourceType,
     uri: resolved.uri,
@@ -98,12 +100,14 @@ async function readPluginManifest(rootDir: string): Promise<ClaudePluginManifest
 }
 
 export interface ResolvePluginSetOptions {
-  defaultPolicyProfile?: string;
+  defaultTrustPolicy?: string;
   /**
    * Called before resolve/fetch for every marketplace and plugin source.
    * Must throw (e.g. PluginResolutionError) when the source is denied.
    */
-  assertSourceAllowed?: (source: PluginSourceSpec, policyProfile: string) => void;
+  assertSourceAllowed?: (source: PluginSourceSpec, trustPolicy: string) => void;
+  /** Digest-bound approvals; the matching approval digest is recorded per plugin. */
+  approvalDigestFor?: (contentDigest: string) => string | undefined;
 }
 
 /**
@@ -118,7 +122,7 @@ export async function resolvePluginSet(
   options: ResolvePluginSetOptions = {},
 ): Promise<ResolvePluginSetResult> {
   const lockfile: Lockfile = {
-    lockfileVersion: 1,
+    lockfileVersion: 2,
     resolverVersion: RESOLVER_VERSION,
     pluginSetDigest: sha256DigestOfJson(manifest),
     marketplaces: [],
@@ -127,7 +131,7 @@ export async function resolvePluginSet(
   const artifacts: ResolvedPluginArtifact[] = [];
   const marketplaceRoots = new Map<string, string>();
   const marketplaceCatalogs = new Map<string, MarketplaceManifest>();
-  const defaultProfile = options.defaultPolicyProfile ?? 'third-party-restricted';
+  const defaultProfile = options.defaultTrustPolicy ?? 'third-party-restricted';
 
   for (const marketplace of manifest.marketplaces) {
     options.assertSourceAllowed?.(marketplace.source, defaultProfile);
@@ -154,7 +158,7 @@ export async function resolvePluginSet(
   for (const declaration of manifest.plugins) {
     const { pluginName, marketplaceName } = parsePluginId(declaration.id);
     let sourceSpec = declaration.source;
-    const policyProfile = declaration.policyProfile ?? defaultProfile;
+    const trustPolicy = declaration.trustPolicy ?? defaultProfile;
 
     if (!sourceSpec) {
       const marketplaceRoot = marketplaceRoots.get(marketplaceName);
@@ -176,7 +180,7 @@ export async function resolvePluginSet(
       sourceSpec = marketplaceEntryToSourceSpec(entry.source, marketplaceRoot);
     }
 
-    options.assertSourceAllowed?.(sourceSpec, policyProfile);
+    options.assertSourceAllowed?.(sourceSpec, trustPolicy);
     const resolver = findResolver(resolvers, sourceSpec);
     const resolved = await resolver.resolve(sourceSpec, context);
     const destination = path.join(context.workDir, 'plugins', normalizeName(declaration.id));
@@ -200,15 +204,19 @@ export async function resolvePluginSet(
     }
     seenNamespaces.set(runtimeNamespace, declaration.id);
 
+    const detectedCapabilities = await detectPluginCapabilities(fetched.rootDir);
     const locked: LockedPlugin = {
       id: declaration.id,
       alias: declaration.alias,
       version: pluginManifest.version ?? resolved.version,
-      policyProfile,
+      trustPolicy,
       source: toLockedSource(resolved),
       pluginRoot: resolved.pluginRoot ?? '.',
       contentDigest: digest.contentDigest,
       manifestDigest,
+      detectedCapabilities,
+      compilerProfile: COMPILER_PROFILE,
+      approvalDigest: options.approvalDigestFor?.(digest.contentDigest),
       files: digest.files,
     };
     lockfile.plugins.push(locked);

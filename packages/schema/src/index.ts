@@ -1,5 +1,6 @@
 export * from './bundle.js';
 export * from './canonical-json.js';
+export * from './capabilities.js';
 export * from './claude.js';
 export * from './diagnostics.js';
 export * from './exit-codes.js';
