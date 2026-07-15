@@ -17,7 +17,6 @@ import {
 } from '@deepagents-plugins/schema';
 
 import type { LoadedPluginBundle } from './load-bundle.js';
-import type { PluginAuthorization, SecretResolver } from '@deepagents-plugins/adapter-mcp';
 
 export interface AuditEvent {
   type:
@@ -31,8 +30,6 @@ export interface AuditEvent {
 
 export interface CreatePluginRuntimeOptions {
   bundle: LoadedPluginBundle;
-  secretResolver?: SecretResolver;
-  authorization?: PluginAuthorization;
   middlewareAdapters?: MiddlewareAdapterRegistry;
   onAuditEvent?: (event: AuditEvent) => void;
 }

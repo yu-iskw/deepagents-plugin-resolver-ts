@@ -49,13 +49,16 @@ export async function writeBundle(
   )) {
     const target = path.join(outputDir, bundlePath);
     await fs.mkdir(path.dirname(target), { recursive: true });
-    if (source.startsWith('data:')) {
-      const value: unknown = JSON.parse(source.slice(5));
-      await fs.writeFile(target, canonicalJsonStringify(value), 'utf8');
-    } else {
-      await fs.copyFile(source, target);
-      await fs.chmod(target, 0o644);
-    }
+    await fs.copyFile(source, target);
+    await fs.chmod(target, 0o644);
+  }
+
+  for (const [bundlePath, value] of [...compiled.inlineJsonFiles.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0]),
+  )) {
+    const target = path.join(outputDir, bundlePath);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, canonicalJsonStringify(value), 'utf8');
   }
 
   // 2. IR, compatibility report, provenance.

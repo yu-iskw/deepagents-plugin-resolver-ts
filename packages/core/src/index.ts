@@ -67,6 +67,8 @@ export interface PipelineOptions {
   cacheDir?: string;
   limits?: Partial<ContentLimits>;
   extraResolvers?: PluginSourceResolver[];
+  /** CLI `--allow-local` override for source trust. */
+  allowLocal?: boolean;
 }
 
 export interface PipelineResult {
@@ -80,7 +82,12 @@ export interface PipelineResult {
 async function buildPolicyEvaluator(options: PipelineOptions): Promise<PolicyEvaluator> {
   const document = options.policyPath ? await loadPolicyDocument(options.policyPath) : undefined;
   const approvals = options.approvalPaths ? await loadApprovals(options.approvalPaths) : [];
-  return new PolicyEvaluator({ document, strict: options.strict ?? false, approvals });
+  return new PolicyEvaluator({
+    document,
+    strict: options.strict ?? false,
+    approvals,
+    allowLocal: options.allowLocal,
+  });
 }
 
 /** Resolve the plugin set and write (or verify) the lockfile. */

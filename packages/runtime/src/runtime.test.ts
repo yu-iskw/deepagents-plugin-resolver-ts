@@ -51,6 +51,7 @@ beforeAll(async () => {
         rootDir: pluginDir,
         manifest: { name: 'demo', version: '1.0.0', description: 'Demo plugin' },
         runtimeNamespace: 'demo',
+        requested: { type: 'local', path: pluginDir },
       },
     ],
     {

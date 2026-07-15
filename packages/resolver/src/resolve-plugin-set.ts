@@ -11,7 +11,9 @@ import {
   sha256DigestOfJson,
   type ClaudePluginManifest,
   type LockedPlugin,
+  type LockedSourceV1,
   type Lockfile,
+  type MarketplaceManifest,
   type PluginSetManifest,
   type PluginSourceSpec,
 } from '@deepagents-plugins/schema';
@@ -19,7 +21,7 @@ import {
 import { digestDirectory } from './directory-digest.js';
 import { marketplaceEntryToSourceSpec, readMarketplaceManifest } from './marketplace.js';
 
-import type { PluginSourceResolver, ResolveContext } from './context.js';
+import type { PluginSourceResolver, ResolveContext, ResolvedPluginSource } from './context.js';
 
 export const RESOLVER_VERSION = '0.1.0';
 
@@ -28,6 +30,7 @@ export interface ResolvedPluginArtifact {
   rootDir: string;
   manifest: ClaudePluginManifest;
   runtimeNamespace: string;
+  requested: PluginSourceSpec;
 }
 
 export interface ResolvePluginSetResult {
@@ -47,6 +50,20 @@ function findResolver(
     );
   }
   return resolver;
+}
+
+function toLockedSource(resolved: ResolvedPluginSource): LockedSourceV1 {
+  return {
+    type: resolved.sourceType,
+    uri: resolved.uri,
+    requestedRef: resolved.requestedRef,
+    resolvedCommit: /^[0-9a-f]{40}$/.test(resolved.immutableIdentity)
+      ? resolved.immutableIdentity
+      : undefined,
+    version: resolved.version,
+    integrity: resolved.expectedIntegrity,
+    pluginRoot: resolved.pluginRoot,
+  };
 }
 
 async function readPluginManifest(rootDir: string): Promise<ClaudePluginManifest> {
@@ -100,6 +117,7 @@ export async function resolvePluginSet(
   };
   const artifacts: ResolvedPluginArtifact[] = [];
   const marketplaceRoots = new Map<string, string>();
+  const marketplaceCatalogs = new Map<string, MarketplaceManifest>();
 
   for (const marketplace of manifest.marketplaces) {
     const resolver = findResolver(resolvers, marketplace.source);
@@ -109,19 +127,13 @@ export async function resolvePluginSet(
     const fetched = await resolver.fetch(resolved, destination, context);
     const digest = await digestDirectory(fetched.rootDir, context.limits);
     marketplaceRoots.set(marketplace.name, fetched.rootDir);
+    marketplaceCatalogs.set(
+      marketplace.name,
+      await readMarketplaceManifest(fetched.rootDir, context.limits),
+    );
     lockfile.marketplaces.push({
       name: marketplace.name,
-      source: {
-        type: resolved.sourceType,
-        uri: resolved.uri,
-        requestedRef: resolved.requestedRef,
-        resolvedCommit: /^[0-9a-f]{40}$/.test(resolved.immutableIdentity)
-          ? resolved.immutableIdentity
-          : undefined,
-        version: resolved.version,
-        integrity: resolved.expectedIntegrity,
-        pluginRoot: resolved.pluginRoot,
-      },
+      source: toLockedSource(resolved),
       contentDigest: digest.contentDigest,
     });
   }
@@ -134,14 +146,14 @@ export async function resolvePluginSet(
 
     if (!sourceSpec) {
       const marketplaceRoot = marketplaceRoots.get(marketplaceName);
-      if (!marketplaceRoot) {
+      const catalog = marketplaceCatalogs.get(marketplaceName);
+      if (!marketplaceRoot || !catalog) {
         throw new PluginResolutionError(
           `Plugin "${declaration.id}" has no explicit source and marketplace "${marketplaceName}" is not declared`,
           ExitCodes.ConfigurationError,
           'Add the marketplace under "marketplaces:", or give the plugin an explicit "source:".',
         );
       }
-      const catalog = await readMarketplaceManifest(marketplaceRoot, context.limits);
       const entry = catalog.plugins.find((candidate) => candidate.name === pluginName);
       if (!entry) {
         throw new PluginResolutionError(
@@ -181,17 +193,7 @@ export async function resolvePluginSet(
       version: pluginManifest.version ?? resolved.version,
       policyProfile:
         declaration.policyProfile ?? options.defaultPolicyProfile ?? 'third-party-restricted',
-      source: {
-        type: resolved.sourceType,
-        uri: resolved.uri,
-        requestedRef: resolved.requestedRef,
-        resolvedCommit: /^[0-9a-f]{40}$/.test(resolved.immutableIdentity)
-          ? resolved.immutableIdentity
-          : undefined,
-        version: resolved.version,
-        integrity: resolved.expectedIntegrity,
-        pluginRoot: resolved.pluginRoot,
-      },
+      source: toLockedSource(resolved),
       pluginRoot: resolved.pluginRoot ?? '.',
       contentDigest: digest.contentDigest,
       manifestDigest,
@@ -203,6 +205,7 @@ export async function resolvePluginSet(
       rootDir: fetched.rootDir,
       manifest: pluginManifest,
       runtimeNamespace,
+      requested: sourceSpec,
     });
   }
 

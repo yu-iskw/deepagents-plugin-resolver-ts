@@ -3,10 +3,18 @@ import type { PluginSourceSpec } from '@deepagents-plugins/schema';
 
 /** Redact credential-looking material from messages (RFC 14.4, 23.3). */
 export function redactSecrets(text: string): string {
-  return text
-    .replaceAll(/(https?:\/\/)[^\s/@]+:[^\s/@]+@/g, '$1<redacted>@')
-    .replaceAll(/\b(gh[pousr]_[A-Za-z0-9]{20,}|npm_[A-Za-z0-9]{20,})\b/g, '<redacted-token>')
-    .replaceAll(/\b(Bearer|token)\s+[A-Za-z0-9._-]{16,}/gi, '$1 <redacted>');
+  // Avoid nested quantifiers that can ReDoS on pathological inputs.
+  let out = text;
+  out = out.replaceAll(/https?:\/\/[^/\s]+@/g, (match) => {
+    const schemeEnd = match.indexOf('://') + 3;
+    return `${match.slice(0, schemeEnd)}<redacted>@`;
+  });
+  out = out.replaceAll(/\b(?:gh[pousr]_|npm_)[A-Za-z0-9_]{8,}\b/g, '<redacted-token>');
+  out = out.replaceAll(/\b(?:Bearer|token)\s+\S{8,}/gi, (match) => {
+    const space = match.search(/\s/);
+    return `${match.slice(0, space)} <redacted>`;
+  });
+  return out;
 }
 
 export interface CredentialProvider {
@@ -19,8 +27,14 @@ export interface CredentialProvider {
 /** Default provider: environment variables only, never persisted. */
 export function envCredentialProvider(env: NodeJS.ProcessEnv = process.env): CredentialProvider {
   return {
-    gitToken: (host) =>
-      host.endsWith('github.com') ? (env.GITHUB_TOKEN ?? env.GH_TOKEN) : env.DEEPAGENTS_GIT_TOKEN,
+    gitToken: (host) => {
+      const normalized = host.toLowerCase();
+      const isGitHub =
+        normalized === 'github.com' ||
+        normalized.endsWith('.github.com') ||
+        normalized === 'www.github.com';
+      return isGitHub ? (env.GITHUB_TOKEN ?? env.GH_TOKEN) : env.DEEPAGENTS_GIT_TOKEN;
+    },
     npmToken: () => env.NPM_TOKEN ?? env.NODE_AUTH_TOKEN,
   };
 }

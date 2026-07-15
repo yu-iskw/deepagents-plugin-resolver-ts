@@ -1,8 +1,10 @@
 import { BUILTIN_PROFILES, DEFAULT_POLICY_RULES } from './defaults.js';
+import { evaluateSourceTrust } from './source-trust.js';
 
 import type {
   PluginApproval,
   PluginPolicyDocument,
+  PluginSourceSpec,
   PolicyDecision,
   PolicyEffect,
   PolicyRules,
@@ -14,6 +16,8 @@ export interface PolicyEvaluatorOptions {
   strict?: boolean;
   approvals?: PluginApproval[];
   now?: () => Date;
+  /** CLI `--allow-local` override for source.allowLocal. */
+  allowLocal?: boolean;
 }
 
 export interface CapabilityQuery {
@@ -70,12 +74,14 @@ export class PolicyEvaluator {
   private readonly strict: boolean;
   private readonly approvals: PluginApproval[];
   private readonly now: () => Date;
+  private readonly allowLocal: boolean | undefined;
 
   constructor(options: PolicyEvaluatorOptions = {}) {
     this.document = options.document;
     this.strict = options.strict ?? false;
     this.approvals = options.approvals ?? [];
     this.now = options.now ?? (() => new Date());
+    this.allowLocal = options.allowLocal;
   }
 
   resolveProfileRules(profile: string): PolicyRules | undefined {
@@ -84,6 +90,16 @@ export class PolicyEvaluator {
 
   hasProfile(profile: string): boolean {
     return this.resolveProfileRules(profile) !== undefined;
+  }
+
+  /** Evaluate source-trust rules for a requested plugin source. */
+  evaluateSource(source: PluginSourceSpec, profile: string): PolicyDecision {
+    const rules = this.resolveProfileRules(profile);
+    const base = rules?.source ?? this.document?.defaults.source;
+    if (this.allowLocal === undefined) {
+      return evaluateSourceTrust(source, base, profile);
+    }
+    return evaluateSourceTrust(source, { ...base, allowLocal: this.allowLocal }, profile);
   }
 
   evaluate(query: CapabilityQuery): PolicyDecision {

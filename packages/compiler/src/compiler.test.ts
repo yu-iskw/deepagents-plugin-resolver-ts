@@ -97,6 +97,7 @@ function makeInput(rootDir: string, profile = 'third-party-restricted'): PluginC
       license: 'MIT',
     },
     runtimeNamespace: 'acme-review',
+    requested: { type: 'local', path: rootDir },
   };
 }
 

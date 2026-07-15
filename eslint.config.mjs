@@ -161,6 +161,11 @@ export default [
     rules: {
       ...importXRules,
       ...securityRecommended.rules,
+      // This monorepo is a filesystem/path toolchain; literal-path FS rules are mostly noise.
+      // Supply-chain and image scanning stay with Trunk Trivy / OSV / CodeQL.
+      'security/detect-non-literal-fs-filename': 'off',
+      'security/detect-object-injection': 'off',
+      'security/detect-unsafe-regex': 'off',
       ...sharedTsRules,
       '@typescript-eslint/no-unused-private-class-members': 'error',
       'unicorn/filename-case': unicornFilenameCase,
@@ -189,6 +194,9 @@ export default [
     rules: {
       ...importXRules,
       ...securityRecommended.rules,
+      'security/detect-non-literal-fs-filename': 'off',
+      'security/detect-object-injection': 'off',
+      'security/detect-unsafe-regex': 'off',
       ...sharedTsRules,
       ...vitestPlugin.configs.recommended.rules,
       // Tests often repeat string literals and use conditional expects; keep signal without noise.

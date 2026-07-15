@@ -105,6 +105,7 @@ describe('golden output for fixtures/plugins/example-plugin (RFC 29.2)', () => {
             license: 'Apache-2.0',
           },
           runtimeNamespace: 'example-plugin',
+          requested: { type: 'local', path: pluginDir },
         },
       ],
       {

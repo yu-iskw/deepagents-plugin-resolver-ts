@@ -40,8 +40,3 @@ function sortValue(value: unknown): unknown {
 export function canonicalJsonStringify(value: unknown): string {
   return `${JSON.stringify(sortValue(value), null, 2)}\n`;
 }
-
-/** Parse JSON without any evaluation semantics beyond JSON.parse. */
-export function parseJson(text: string): JsonValue {
-  return JSON.parse(text) as JsonValue;
-}

@@ -32,7 +32,15 @@ export function isSha256Digest(value: string): boolean {
   return /^sha256:[0-9a-f]{64}$/.test(value);
 }
 
-/** Constant-length comparison helper for digest strings. */
+/** Ensure a hex digest uses the `sha256:` prefix. */
+export function normalizeSha256Digest(value: string): string {
+  return value.startsWith(SHA256_PREFIX) ? value : `${SHA256_PREFIX}${value}`;
+}
+
+/** Compare digest strings, normalizing optional `sha256:` prefixes. */
 export function digestsEqual(a: string, b: string): boolean {
+  if (a.startsWith(SHA256_PREFIX) || b.startsWith(SHA256_PREFIX)) {
+    return normalizeSha256Digest(a) === normalizeSha256Digest(b);
+  }
   return a.length === b.length && a === b;
 }

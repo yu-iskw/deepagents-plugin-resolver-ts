@@ -2,3 +2,7 @@
 extends: markdownlint/style/prettier
 first-line-heading:
   severity: warning
+# Emphasis-as-heading is common in design docs; keep as warning.
+no-emphasis-as-heading: false
+# Bare URLs appear in RFC reference sections.
+no-bare-urls: false

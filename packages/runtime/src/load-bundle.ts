@@ -8,6 +8,7 @@ import {
   PluginResolutionError,
   bundleManifestSchema,
   compiledPluginSetSchema,
+  digestsEqual,
   sha256DigestOfFile,
   type BundleManifest,
   type CompiledPluginSetV1,
@@ -76,7 +77,7 @@ export async function loadCompiledPluginSet(
           'The bundle was modified after compilation. Rebuild and redeploy the image.',
         );
       }
-      if (digest !== entry.sha256) {
+      if (!digestsEqual(digest, entry.sha256)) {
         throw new PluginResolutionError(
           `Bundle file "${entry.path}" failed integrity verification`,
           ExitCodes.IntegrityMismatch,

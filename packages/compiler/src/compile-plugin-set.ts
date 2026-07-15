@@ -22,6 +22,7 @@ import {
   type CompatibilityDiagnosticV1,
   type CompiledPluginSetV1,
   type LockedPlugin,
+  type PluginSourceSpec,
 } from '@deepagents-plugins/schema';
 
 import { findClaudeVariables, normalizeToolList, parseFrontmatter } from './frontmatter.js';
@@ -36,6 +37,8 @@ export interface PluginCompileInput {
   rootDir: string;
   manifest: ClaudePluginManifest;
   runtimeNamespace: string;
+  /** Original requested source; used for source-trust policy checks. */
+  requested?: PluginSourceSpec;
 }
 
 export interface CompileOptions {
@@ -50,6 +53,8 @@ export interface CompileResult {
   diagnostics: readonly CompatibilityDiagnosticV1[];
   /** Files to copy into the bundle: bundle-relative path -> absolute source path. */
   filesToCopy: Map<string, string>;
+  /** Inline JSON documents written by the bundler (no fake data: URIs). */
+  inlineJsonFiles: Map<string, unknown>;
 }
 
 const GENERATED_BY = { name: '@deepagents-plugins/compiler', version: '0.1.0' };
@@ -63,6 +68,7 @@ interface PluginContext {
   ir: CompiledPluginSetV1;
   diagnostics: DiagnosticCollector;
   filesToCopy: Map<string, string>;
+  inlineJsonFiles: Map<string, unknown>;
   options: CompileOptions;
   capabilities: Set<string>;
   degraded: boolean;
@@ -80,6 +86,7 @@ export async function compilePluginSet(
 ): Promise<CompileResult> {
   const diagnostics = new DiagnosticCollector();
   const filesToCopy = new Map<string, string>();
+  const inlineJsonFiles = new Map<string, unknown>();
   const ir: CompiledPluginSetV1 = {
     schemaVersion: IR_SCHEMA_VERSION,
     generatedBy: options.generatedBy ?? GENERATED_BY,
@@ -103,11 +110,18 @@ export async function compilePluginSet(
       ir,
       diagnostics,
       filesToCopy,
+      inlineJsonFiles,
       options,
       capabilities: new Set<string>(),
       degraded: false,
       blocked: false,
     };
+    gateSourceTrust(context);
+    if (context.blocked) {
+      // Source-trust denial is a hard security constraint: never stage content
+      // for a denied source, including under --compatibility permissive.
+      continue;
+    }
     await compileSkills(context);
     await compileCommands(context);
     await compileSubagents(context);
@@ -121,7 +135,7 @@ export async function compilePluginSet(
 
   ir.diagnostics = [...diagnostics.all];
   enforceCompatibilityMode(ir.diagnostics, options.compatibilityMode ?? 'standard');
-  return { ir, diagnostics: diagnostics.all, filesToCopy };
+  return { ir, diagnostics: diagnostics.all, filesToCopy, inlineJsonFiles };
 }
 
 function enforceCompatibilityMode(
@@ -192,6 +206,40 @@ function policyGate(context: PluginContext, capability: string, component: strin
     remediation: decision.remediation,
   });
   return false;
+}
+
+function gateSourceTrust(context: PluginContext): void {
+  const { locked, requested } = context.input;
+  if (!requested) {
+    context.blocked = true;
+    context.diagnostics.add({
+      code: DiagnosticCodes.PolicyDenied,
+      severity: 'error',
+      pluginId: locked.id,
+      component: 'source',
+      compatibility: BLOCKED_BY_POLICY,
+      message:
+        'Compile input is missing the requested source specification; refusing to compile the plugin.',
+      remediation:
+        'Pass the original PluginSourceSpec from resolution (ResolvedPluginArtifact.requested).',
+    });
+    return;
+  }
+  const decision = context.options.policy.evaluateSource(requested, locked.policyProfile);
+  if (decision.effect === 'allow') return;
+  context.blocked = true;
+  context.diagnostics.add({
+    code:
+      decision.effect === 'deny'
+        ? DiagnosticCodes.PolicyDenied
+        : DiagnosticCodes.PolicyReviewRequired,
+    severity: decision.effect === 'deny' ? 'error' : 'warning',
+    pluginId: locked.id,
+    component: `source/${requested.type}`,
+    compatibility: BLOCKED_BY_POLICY,
+    message: decision.reason,
+    remediation: decision.remediation,
+  });
 }
 
 async function compileSkills(context: PluginContext): Promise<void> {
@@ -532,21 +580,18 @@ function recordPluginAndProvenance(context: PluginContext): void {
   });
 
   // Per-plugin metadata manifest for the bundle.
-  context.filesToCopy.set(
-    `plugins/${input.runtimeNamespace}/manifest.json`,
-    `data:${JSON.stringify({
-      id: locked.id,
-      digest: locked.contentDigest,
-      manifestDigest: sha256DigestOfJson(manifest),
-    })}`,
-  );
+  context.inlineJsonFiles.set(`plugins/${input.runtimeNamespace}/manifest.json`, {
+    id: locked.id,
+    digest: locked.contentDigest,
+    manifestDigest: sha256DigestOfJson(manifest),
+  });
 
   ir.provenance.push({
     pluginId: locked.id,
     sourceType: locked.source.type,
     sourceIdentity: locked.source.resolvedCommit ?? locked.source.integrity ?? locked.source.uri,
     contentDigest: locked.contentDigest,
-    resolverVersion: '0.1.0',
+    resolverVersion: (context.options.generatedBy ?? GENERATED_BY).version,
     policyProfile: locked.policyProfile,
   });
 }

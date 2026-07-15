@@ -8,7 +8,7 @@
       "id": "example-plugin:review",
       "name": "review",
       "pluginId": "example-plugin@example-marketplace",
-      "promptTemplate": "Perform a thorough review of $ARGUMENTS and report findings by severity.",
+      "promptTemplate": "# Review\n\nPerform a thorough review of $ARGUMENTS and report findings by severity.",
       "usesArguments": true
     }
   ],
@@ -92,7 +92,7 @@
       "id": "example-plugin:reviewer",
       "name": "reviewer",
       "pluginId": "example-plugin@example-marketplace",
-      "systemPrompt": "You are a meticulous code reviewer. Report only defects you can substantiate."
+      "systemPrompt": "# Reviewer\n\nYou are a meticulous code reviewer. Report only defects you can substantiate."
     }
   ]
 }

@@ -1,5 +1,7 @@
+import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { promisify } from 'node:util';
 
 import {
   renderCompatibilityReport,
@@ -22,6 +24,9 @@ import {
   canonicalJsonStringify,
 } from '@deepagents-plugins/schema';
 import { Command } from 'commander';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+
+const execFileAsync = promisify(execFile);
 
 export interface CliIo {
   out(text: string): void;
@@ -60,6 +65,7 @@ function pipelineOptions(flags: GlobalFlags): PipelineOptions {
     outputDir: flags.output,
     reproducible: flags.reproducible,
     cacheDir: flags.cacheDir,
+    allowLocal: flags.allowLocal,
   };
 }
 
@@ -273,9 +279,7 @@ export function createProgram(io: CliIo = defaultIo): Command {
       const nodeMajor = Number(process.versions.node.split('.')[0]);
       io.out(`node: ${process.version} ${nodeMajor >= 22 ? 'ok' : 'UNSUPPORTED (need >= 22)'}`);
       try {
-        const { execFile } = await import('node:child_process');
-        const { promisify } = await import('node:util');
-        const { stdout } = await promisify(execFile)('git', ['--version']);
+        const { stdout } = await execFileAsync('git', ['--version']);
         io.out(`git: ${stdout.trim()} ok`);
       } catch {
         io.out('git: NOT FOUND (required for git/github sources)');
@@ -293,8 +297,7 @@ export function createProgram(io: CliIo = defaultIo): Command {
     const projectDir = path.resolve(flags().project ?? '.');
     const manifestPath = path.join(projectDir, MANIFEST_NAME);
     const text = await fs.readFile(manifestPath, 'utf8');
-    const { parse, stringify } = await import('yaml');
-    const doc = parse(text, { schema: 'core' }) as {
+    const doc = parseYaml(text, { schema: 'core' }) as {
       plugins?: { [key: string]: unknown; id: string }[];
     };
     doc.plugins ??= [];
@@ -316,7 +319,7 @@ export function createProgram(io: CliIo = defaultIo): Command {
         );
       }
     }
-    await fs.writeFile(manifestPath, stringify(doc), 'utf8');
+    await fs.writeFile(manifestPath, stringifyYaml(doc), 'utf8');
     io.out(`${add ? 'Added' : 'Removed'} ${pluginId}. Run "deepagents-plugins resolve" next.`);
   };
 
