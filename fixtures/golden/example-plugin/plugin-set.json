@@ -1,0 +1,98 @@
+{
+  "assets": [],
+  "commands": [
+    {
+      "argumentHint": "<path>",
+      "compatibility": "partial",
+      "description": "Review a file or directory",
+      "id": "example-plugin:review",
+      "name": "review",
+      "pluginId": "example-plugin@example-marketplace",
+      "promptTemplate": "# Review\n\nPerform a thorough review of $ARGUMENTS and report findings by severity.",
+      "usesArguments": true
+    }
+  ],
+  "diagnostics": [
+    {
+      "code": "DAP4002",
+      "compatibility": "partial",
+      "component": "commands/review.md",
+      "message": "$ARGUMENTS is supported only through explicit command invocation.",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "info",
+      "sourceLocation": {
+        "path": "commands/review.md"
+      }
+    }
+  ],
+  "executableAssets": [],
+  "generatedBy": {
+    "name": "@deepagents-plugins/compiler",
+    "version": "0.1.0"
+  },
+  "hooks": [],
+  "mcpServers": [],
+  "pluginSetDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "plugins": [
+    {
+      "capabilities": [
+        "commands",
+        "skills",
+        "subagents"
+      ],
+      "compatibility": "partial",
+      "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "description": "Example plugin used for golden tests",
+      "id": "example-plugin@example-marketplace",
+      "license": "Apache-2.0",
+      "name": "example-plugin",
+      "policyProfile": "trusted-internal",
+      "runtimeNamespace": "example-plugin",
+      "source": {
+        "pluginRoot": ".",
+        "requestedRef": "v1.4.0",
+        "resolvedCommit": "ffffffffffffffffffffffffffffffffffffffff",
+        "type": "github",
+        "uri": "https://github.com/example/plugin.git"
+      },
+      "version": "1.4.0"
+    }
+  ],
+  "provenance": [
+    {
+      "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "pluginId": "example-plugin@example-marketplace",
+      "policyProfile": "trusted-internal",
+      "resolverVersion": "0.1.0",
+      "sourceIdentity": "ffffffffffffffffffffffffffffffffffffffff",
+      "sourceType": "github"
+    }
+  ],
+  "schemaVersion": "1.0",
+  "skills": [
+    {
+      "compatibility": "native",
+      "description": "Perform a structured security review of the target code",
+      "directory": "skills/example-plugin/security-review",
+      "id": "example-plugin:security-review",
+      "originalName": "security-review",
+      "pluginId": "example-plugin@example-marketplace",
+      "runtimeName": "security-review",
+      "skillFile": "skills/example-plugin/security-review/SKILL.md"
+    }
+  ],
+  "subagents": [
+    {
+      "allowedTools": [
+        "Grep",
+        "Read"
+      ],
+      "compatibility": "translated",
+      "description": "Code review specialist subagent",
+      "id": "example-plugin:reviewer",
+      "name": "reviewer",
+      "pluginId": "example-plugin@example-marketplace",
+      "systemPrompt": "# Reviewer\n\nYou are a meticulous code reviewer. Report only defects you can substantiate."
+    }
+  ]
+}

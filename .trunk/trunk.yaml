@@ -21,6 +21,10 @@ lint:
     - checkov
     - trufflehog
     - markdownlint
+  ignore:
+    - linters: [markdownlint-cli2]
+      paths:
+        - RFC.md
   enabled:
     # - semgrep@1.155.0
     - stylelint@17.6.0

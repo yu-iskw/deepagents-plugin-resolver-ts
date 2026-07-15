@@ -3,3 +3,4 @@ dist
 coverage
 .trunk
 pnpm-lock.yaml
+fixtures/golden/

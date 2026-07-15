@@ -1,0 +1,7 @@
+bundle-manifest.json
+compatibility-report.json
+ir/plugin-set.json
+plugins/example-plugin/manifest.json
+provenance.json
+skills/example-plugin/security-review/SKILL.md
+skills/example-plugin/security-review/references/checklist.md

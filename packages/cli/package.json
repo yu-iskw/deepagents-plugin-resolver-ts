@@ -1,0 +1,38 @@
+{
+  "name": "@deepagents-plugins/cli",
+  "version": "0.1.0",
+  "description": "Command-line interface for resolving, auditing, and compiling Claude Code plugins for Deep Agents.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "deepagents-plugins": "dist/bin.js"
+  },
+  "dependencies": {
+    "@deepagents-plugins/compiler": "workspace:*",
+    "@deepagents-plugins/core": "workspace:*",
+    "@deepagents-plugins/schema": "workspace:*",
+    "commander": "catalog:",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1"
+  }
+}

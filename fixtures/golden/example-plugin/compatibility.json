@@ -1,0 +1,15 @@
+{
+  "diagnostics": [
+    {
+      "code": "DAP4002",
+      "compatibility": "partial",
+      "component": "commands/review.md",
+      "message": "$ARGUMENTS is supported only through explicit command invocation.",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "info",
+      "sourceLocation": {
+        "path": "commands/review.md"
+      }
+    }
+  ]
+}

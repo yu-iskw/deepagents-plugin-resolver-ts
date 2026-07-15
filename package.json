@@ -1,8 +1,8 @@
 {
-  "name": "typescript-template",
+  "name": "deepagents-plugin-resolver-ts",
   "version": "1.0.0",
   "private": true,
-  "description": "",
+  "description": "Claude Code plugin resolution and compatibility toolchain for Deep Agents JS",
   "keywords": [],
   "license": "Apache-2.0",
   "author": "",
@@ -24,8 +24,9 @@
     "security:grype": "grype .",
     "knip": "knip",
     "codeql:local": "bash dev/codeql.sh",
-    "test": "vitest run",
-    "coverage": "vitest run --coverage",
+    "test": "pnpm build && vitest run",
+    "test:unit": "vitest run",
+    "coverage": "pnpm build && vitest run --coverage",
     "coverage:watch": "vitest --coverage"
   },
   "devDependencies": {
