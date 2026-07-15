@@ -116,9 +116,7 @@ export async function resolvePluginSetFromProject(
 }
 
 /** Resolve and compile without bundling — used by `audit` (RFC 24.1). */
-export async function auditPluginSetFromProject(
-  options: PipelineOptions,
-): Promise<{
+export async function auditPluginSetFromProject(options: PipelineOptions): Promise<{
   manifest: PluginSetManifest;
   resolution: ResolvePluginSetResult;
   compiled: CompileResult;
