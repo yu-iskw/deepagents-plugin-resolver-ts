@@ -24,8 +24,9 @@
     "security:grype": "grype .",
     "knip": "knip",
     "codeql:local": "bash dev/codeql.sh",
-    "test": "vitest run",
-    "coverage": "vitest run --coverage",
+    "test": "pnpm build && vitest run",
+    "test:unit": "vitest run",
+    "coverage": "pnpm build && vitest run --coverage",
     "coverage:watch": "vitest --coverage"
   },
   "devDependencies": {
