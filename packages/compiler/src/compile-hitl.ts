@@ -38,6 +38,20 @@ export function compileHitl(context: PluginContext): void {
     });
   }
 
+  // Permissions stay sorted even when HITL recommendations are skipped.
+  ir.permissions.sort((a, b) => a.id.localeCompare(b.id));
+  if (toolRefs.size === 0) return;
+
+  // Soft-gate: deny/review suppresses recommendations without failing the build.
+  const decision = context.options.policy.evaluate({
+    pluginId,
+    profile: input.locked.trustPolicy,
+    capability: 'hitl',
+    contentDigest: input.locked.contentDigest,
+  });
+  if (decision.effect !== 'allow') return;
+
+  context.capabilities.add('hitl');
   for (const [toolRef, risk] of [...toolRefs.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
     ir.hitlPolicies.push({
       id: `${toolRef}:hitl`,
@@ -47,5 +61,4 @@ export function compileHitl(context: PluginContext): void {
       recommendedDecisions: risk === 'critical' ? ['approve', 'reject'] : ['approve', 'edit', 'reject'],
     });
   }
-  ir.permissions.sort((a, b) => a.id.localeCompare(b.id));
 }

@@ -286,17 +286,21 @@ export function createProgram(io: CliIo = defaultIo): Command {
     .command('capabilities')
     .description('detect installed Deep Agents capabilities and compare with the plugin set')
     .action(async () => {
+      const options = pipelineOptions(flags());
       const capabilities = await detectDeepAgentsCapabilities();
       let comparison: { capability: string; required: boolean; available: boolean }[] = [];
-      try {
-        const { compiled } = await auditPluginSetFromProject(pipelineOptions(flags()));
+      const manifestPath = path.join(options.projectDir, MANIFEST_NAME);
+      const hasManifest = await fs.access(manifestPath).then(
+        () => true,
+        () => false,
+      );
+      if (hasManifest) {
+        const { compiled } = await auditPluginSetFromProject(options);
         comparison = requiredCapabilitiesFromIr(compiled.ir).map((requirement) => ({
           capability: requirement.capability,
           required: requirement.required,
           available: capabilityAvailable(capabilities, requirement.capability),
         }));
-      } catch {
-        // No manifest/lockfile: report detection only.
       }
       if (flags().json) {
         io.out(canonicalJsonStringify({ capabilities, comparison }).trimEnd());

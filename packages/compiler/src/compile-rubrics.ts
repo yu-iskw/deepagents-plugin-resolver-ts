@@ -9,7 +9,7 @@ import {
   qualifiedComponentId,
 } from '@deepagents-plugins/schema';
 
-import { featureToggle, stageFile, type PluginContext } from './compile-context.js';
+import { featureToggle, policyGate, stageFile, type PluginContext } from './compile-context.js';
 
 const MAX_RUBRIC_ITERATIONS = 5;
 
@@ -25,6 +25,8 @@ export async function compileRubrics(context: PluginContext): Promise<void> {
 
   for (const rubricFileName of inspection.rubricFiles) {
     const component = `rubrics/${rubricFileName}`;
+    if (!policyGate(context, 'rubrics', component)) continue;
+
     const absolute = path.join(input.rootDir, 'rubrics', rubricFileName);
     const raw: unknown = JSON.parse(await fs.readFile(absolute, 'utf8'));
     const parsed = claudeRubricFileSchema.safeParse(raw);
@@ -42,7 +44,6 @@ export async function compileRubrics(context: PluginContext): Promise<void> {
 
     const name = normalizeName(parsed.data.name ?? rubricFileName.replace(/\.json$/, ''));
     stageFile(context, absolute, `${RUBRICS_DIR}/${input.runtimeNamespace}/${rubricFileName}`);
-    context.capabilities.add('rubrics');
     diagnostics.add({
       code: DiagnosticCodes.RequiresAdapter,
       severity: 'info',

@@ -261,6 +261,22 @@ describe('rubric templates (RFC 23)', () => {
       compatibility: 'requires-adapter',
     });
   });
+
+  it('does not stage templates when the rubrics trust policy requires approval', async () => {
+    const { ir, filesToCopy } = await compilePluginSet(
+      [makeInput(pluginDir, 'third-party-restricted')],
+      options({ policy: new PolicyEvaluator() }),
+    );
+    expect(ir.rubricTemplates).toHaveLength(0);
+    expect([...filesToCopy.keys()].some((key) => key.startsWith('rubrics/'))).toBe(false);
+    expect(
+      ir.diagnostics.some(
+        (diagnostic) =>
+          diagnostic.component === 'rubrics/review-quality.json' &&
+          diagnostic.compatibility === 'requires-approval',
+      ),
+    ).toBe(true);
+  });
 });
 
 describe('stream metadata (RFC 20)', () => {
@@ -322,6 +338,38 @@ describe('HITL and permission recommendations (RFC 19, 25)', () => {
         (permission) => permission.toolRef === executable?.id && permission.permission === 'execute',
       ),
     ).toBe(true);
+  });
+
+  it('suppresses HITL recommendations when the hitl trust policy denies them', async () => {
+    const denyDir = path.join(tmpRoot, 'hitl-deny-plugin');
+    await write(
+      denyDir,
+      '.claude-plugin/plugin.json',
+      JSON.stringify({ name: 'hitl-deny-plugin', version: '1.0.0' }),
+    );
+    await write(denyDir, 'bin/deploy.sh', '#!/bin/sh\necho deploy\n');
+    const base = makeInput(denyDir, 'custom-policy');
+    const input: PluginCompileInput = {
+      ...base,
+      locked: { ...base.locked, id: 'hitl-deny-plugin@direct' },
+      runtimeNamespace: 'hitl-deny-plugin',
+    };
+    const { ir } = await compilePluginSet(
+      [input],
+      options({
+        policy: new PolicyEvaluator({
+          document: {
+            apiVersion: 'deepagents.plugins/v2',
+            kind: 'PluginPolicy',
+            defaults: { binaries: 'allow', hitl: 'deny' },
+            profiles: {},
+          },
+        }),
+      }),
+    );
+    expect(ir.executableAssets).toHaveLength(1);
+    expect(ir.hitlPolicies).toHaveLength(0);
+    expect(ir.permissions.some((permission) => permission.permission === 'execute')).toBe(true);
   });
 });
 
