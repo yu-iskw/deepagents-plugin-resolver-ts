@@ -10,9 +10,11 @@ import {
   bundleManifestSchema,
   compiledPluginSetSchema,
   digestsEqual,
+  requiredCapabilitiesFromIr,
   sha256DigestOfFile,
   type BundleManifest,
-  type CompiledPluginSetV1,
+  type CapabilityRequirement,
+  type CompiledPluginSetV2,
 } from '@deepagents-plugins/schema';
 
 export interface LoadCompiledPluginSetOptions {
@@ -23,8 +25,10 @@ export interface LoadCompiledPluginSetOptions {
 
 export interface LoadedPluginBundle {
   directory: string;
-  compiled: CompiledPluginSetV1;
+  compiled: CompiledPluginSetV2;
   manifest: BundleManifest;
+  /** Deep Agents capabilities the bundle needs (RFC v2 section 11). */
+  requiredCapabilities: CapabilityRequirement[];
 }
 
 /**
@@ -108,7 +112,12 @@ export async function loadCompiledPluginSet(
     );
   }
 
-  return { directory, compiled: irParsed.data, manifest };
+  return {
+    directory,
+    compiled: irParsed.data,
+    manifest,
+    requiredCapabilities: requiredCapabilitiesFromIr(irParsed.data),
+  };
 }
 
 /** Relative posix paths of on-disk files, excluding meta files the bundler omits from digests. */

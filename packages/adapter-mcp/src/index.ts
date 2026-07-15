@@ -4,7 +4,7 @@ import {
   qualifiedComponentId,
   qualifiedToolId,
   normalizeName,
-  type CompiledMcpServerV1,
+  type CompiledMcpServerV2,
   type McpServerConfig,
 } from '@deepagents-plugins/schema';
 
@@ -18,7 +18,7 @@ import {
  */
 
 export interface McpTranslationResult {
-  server?: CompiledMcpServerV1;
+  server?: CompiledMcpServerV2;
   /** Reason the server could not be translated, when `server` is absent. */
   unsupportedReason?: string;
   /** Capability this server needs: `mcp.remoteHttp` or `mcp.stdio`. */
@@ -128,7 +128,7 @@ export interface WrapToolOptions {
 
 /** Wrap a raw tool invocation with per-call authorization and output limits. */
 export function wrapPluginTool(
-  server: CompiledMcpServerV1,
+  server: CompiledMcpServerV2,
   pluginNamespace: string,
   toolName: string,
   rawInvoke: (input: unknown) => Promise<unknown>,

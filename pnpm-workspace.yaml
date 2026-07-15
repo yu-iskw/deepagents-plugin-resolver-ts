@@ -18,6 +18,10 @@ catalog:
 # https://pnpm.io/blog/releases/11.0
 # https://socket.dev/blog/pnpm-11-adds-new-supply-chain-protection-defaults
 minimumReleaseAge: 10080 # 7 days * 1440 min
+# @types/node 22.20.1 is already locked by every other workspace package;
+# excluding it lets new packages reuse the same version within the age window.
+minimumReleaseAgeExclude:
+  - '@types/node'
 
 # Migrated from package.json#pnpm (pnpm 11 no longer reads that field)
 overrides:

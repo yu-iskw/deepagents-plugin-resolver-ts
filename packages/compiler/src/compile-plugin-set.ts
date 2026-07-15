@@ -4,12 +4,12 @@ import path from 'node:path';
 import { translateClaudeHook } from '@deepagents-plugins/adapter-hooks';
 import { translateMcpServer } from '@deepagents-plugins/adapter-mcp';
 import {
+  COMPILER_PROFILE,
   DiagnosticCodes,
   DiagnosticCollector,
   ExitCodes,
   IR_SCHEMA_VERSION,
   PluginResolutionError,
-  agentFrontmatterSchema,
   claudeHooksFileSchema,
   commandFrontmatterSchema,
   mcpConfigFileSchema,
@@ -18,66 +18,47 @@ import {
   sha256DigestOfFile,
   sha256DigestOfJson,
   skillFrontmatterSchema,
-  type ClaudePluginManifest,
-  type CompatibilityDiagnosticV1,
-  type CompiledPluginSetV1,
-  type LockedPlugin,
-  type PluginSourceSpec,
+  type CompatibilityDiagnosticV2,
+  type CompiledPluginSetV2,
 } from '@deepagents-plugins/schema';
 
+import {
+  featureToggle,
+  policyGate,
+  stageDirectory,
+  type CompatibilityMode,
+  type CompileOptions,
+  type PluginCompileInput,
+  type PluginContext,
+} from './compile-context.js';
+import { compileHitl } from './compile-hitl.js';
+import { compileInterpreter } from './compile-interpreter.js';
+import { compileMemory } from './compile-memory.js';
+import { compileProfiles } from './compile-profiles.js';
+import { compileRubrics } from './compile-rubrics.js';
+import { compileSubagents } from './compile-subagents.js';
 import { findClaudeVariables, normalizeToolList, parseFrontmatter } from './frontmatter.js';
-import { inspectPlugin, type PluginInspection } from './inspect.js';
+import { inspectPlugin } from './inspect.js';
+import { compileStreamMetadata } from './stream-metadata.js';
 
-import type { PolicyEvaluator } from '@deepagents-plugins/policy';
-
-export type CompatibilityMode = 'permissive' | 'standard' | 'strict';
-
-export interface PluginCompileInput {
-  locked: LockedPlugin;
-  rootDir: string;
-  manifest: ClaudePluginManifest;
-  runtimeNamespace: string;
-  /** Original requested source; used for source-trust policy checks. */
-  requested?: PluginSourceSpec;
-}
-
-export interface CompileOptions {
-  policy: PolicyEvaluator;
-  compatibilityMode?: CompatibilityMode;
-  generatedBy?: { name: string; version: string };
-  pluginSetDigest: string;
-}
+export type { CompatibilityMode, CompileOptions, PluginCompileInput } from './compile-context.js';
 
 export interface CompileResult {
-  ir: CompiledPluginSetV1;
-  diagnostics: readonly CompatibilityDiagnosticV1[];
+  ir: CompiledPluginSetV2;
+  diagnostics: readonly CompatibilityDiagnosticV2[];
   /** Files to copy into the bundle: bundle-relative path -> absolute source path. */
   filesToCopy: Map<string, string>;
   /** Inline JSON documents written by the bundler (no fake data: URIs). */
   inlineJsonFiles: Map<string, unknown>;
 }
 
-const GENERATED_BY = { name: '@deepagents-plugins/compiler', version: '0.1.0' };
+const COMPILER_IDENTITY = { name: '@deepagents-plugins/compiler', version: '0.2.0' };
 const BLOCKED_BY_POLICY = 'blocked-by-policy' as const;
 const SANDBOX_PROFILE_DENY = 'default-deny';
 
-/** Shared state threaded through the per-component compilation helpers. */
-interface PluginContext {
-  input: PluginCompileInput;
-  inspection: PluginInspection;
-  ir: CompiledPluginSetV1;
-  diagnostics: DiagnosticCollector;
-  filesToCopy: Map<string, string>;
-  inlineJsonFiles: Map<string, unknown>;
-  options: CompileOptions;
-  capabilities: Set<string>;
-  degraded: boolean;
-  blocked: boolean;
-}
-
 /**
- * Translate resolved, policy-scoped plugins into the portable IR
- * (RFC sections 15 and 16). Pure with respect to the output directory:
+ * Translate resolved, policy-scoped plugins into the portable IR v2
+ * (RFC v2 section 10). Pure with respect to the output directory:
  * materialization happens separately in the bundler.
  */
 export async function compilePluginSet(
@@ -87,16 +68,25 @@ export async function compilePluginSet(
   const diagnostics = new DiagnosticCollector();
   const filesToCopy = new Map<string, string>();
   const inlineJsonFiles = new Map<string, unknown>();
-  const ir: CompiledPluginSetV1 = {
+  const identity = options.compiler ?? COMPILER_IDENTITY;
+  const ir: CompiledPluginSetV2 = {
     schemaVersion: IR_SCHEMA_VERSION,
-    generatedBy: options.generatedBy ?? GENERATED_BY,
+    compiler: { ...identity, compilerProfile: COMPILER_PROFILE },
     pluginSetDigest: options.pluginSetDigest,
     plugins: [],
     skills: [],
+    memorySources: [],
     commands: [],
-    subagents: [],
+    syncSubagents: [],
+    asyncSubagents: [],
     mcpServers: [],
     hooks: [],
+    harnessProfiles: [],
+    hitlPolicies: [],
+    permissions: [],
+    interpreterPolicies: [],
+    rubricTemplates: [],
+    streamMetadata: [],
     assets: [],
     executableAssets: [],
     diagnostics: [],
@@ -125,11 +115,17 @@ export async function compilePluginSet(
     await compileSkills(context);
     await compileCommands(context);
     await compileSubagents(context);
+    await compileMemory(context);
+    await compileProfiles(context);
     await compileMcpServers(context);
     await compileHooks(context);
+    await compileInterpreter(context);
+    await compileRubrics(context);
     compileAdvisoryComponents(context);
     await compileExecutableAssets(context);
     await compileUnknownComponents(context);
+    compileHitl(context);
+    compileStreamMetadata(context);
     recordPluginAndProvenance(context);
   }
 
@@ -138,8 +134,17 @@ export async function compilePluginSet(
   return { ir, diagnostics: diagnostics.all, filesToCopy, inlineJsonFiles };
 }
 
+const DEGRADED_STATUSES = new Set([
+  'partial',
+  'unsupported',
+  BLOCKED_BY_POLICY,
+  'runtime-unavailable',
+  'requires-adapter',
+  'requires-approval',
+]);
+
 function enforceCompatibilityMode(
-  diagnostics: readonly CompatibilityDiagnosticV1[],
+  diagnostics: readonly CompatibilityDiagnosticV2[],
   mode: CompatibilityMode,
 ): void {
   const hasErrors = diagnostics.some((diagnostic) => diagnostic.severity === 'error');
@@ -147,11 +152,8 @@ function enforceCompatibilityMode(
     (diagnostic) =>
       diagnostic.severity === 'error' && diagnostic.compatibility === BLOCKED_BY_POLICY,
   );
-  const hasDegraded = diagnostics.some(
-    (diagnostic) =>
-      diagnostic.compatibility === 'partial' ||
-      diagnostic.compatibility === 'unsupported' ||
-      diagnostic.compatibility === BLOCKED_BY_POLICY,
+  const hasDegraded = diagnostics.some((diagnostic) =>
+    DEGRADED_STATUSES.has(diagnostic.compatibility),
   );
 
   // Permissive mode reports but does not fail; denied components are still
@@ -172,40 +174,11 @@ function enforceCompatibilityMode(
   }
   if (mode === 'strict' && hasDegraded) {
     throw new PluginResolutionError(
-      'Strict compatibility mode: partial, unsupported, or policy-blocked components present',
+      'Strict compatibility mode: degraded components present (partial, unsupported, policy-blocked, runtime-unavailable, requires-adapter, or requires-approval)',
       ExitCodes.CompatibilityFailure,
       'Use --compatibility standard to accept degraded components, or remove them from the plugin set.',
     );
   }
-}
-
-/** Evaluate policy for a capability, recording a diagnostic on non-allow. */
-function policyGate(context: PluginContext, capability: string, component: string): boolean {
-  const { locked } = context.input;
-  const decision = context.options.policy.evaluate({
-    pluginId: locked.id,
-    profile: locked.policyProfile,
-    capability,
-    contentDigest: locked.contentDigest,
-  });
-  if (decision.effect === 'allow') {
-    context.capabilities.add(capability);
-    return true;
-  }
-  context.blocked = true;
-  context.diagnostics.add({
-    code:
-      decision.effect === 'deny'
-        ? DiagnosticCodes.PolicyDenied
-        : DiagnosticCodes.PolicyReviewRequired,
-    severity: decision.effect === 'deny' ? 'error' : 'warning',
-    pluginId: locked.id,
-    component,
-    compatibility: BLOCKED_BY_POLICY,
-    message: decision.reason,
-    remediation: decision.remediation,
-  });
-  return false;
 }
 
 function gateSourceTrust(context: PluginContext): void {
@@ -225,7 +198,7 @@ function gateSourceTrust(context: PluginContext): void {
     });
     return;
   }
-  const decision = context.options.policy.evaluateSource(requested, locked.policyProfile);
+  const decision = context.options.policy.evaluateSource(requested, locked.trustPolicy);
   if (decision.effect === 'allow') return;
   context.blocked = true;
   context.diagnostics.add({
@@ -245,6 +218,7 @@ function gateSourceTrust(context: PluginContext): void {
 async function compileSkills(context: PluginContext): Promise<void> {
   const { input, inspection, ir, diagnostics } = context;
   const pluginId = input.locked.id;
+  if (featureToggle(context, 'skills') === 'disabled') return;
   for (const skillDirName of inspection.skillDirs) {
     const component = `skills/${skillDirName}`;
     if (!policyGate(context, 'skills', component)) continue;
@@ -299,6 +273,7 @@ async function compileSkills(context: PluginContext): Promise<void> {
       directory: bundleDir,
       skillFile: `${bundleDir}/SKILL.md`,
       allowedTools: normalizeToolList(parsed.data['allowed-tools']),
+      requiredPermissions: normalizeToolList(parsed.data.permissions),
       compatibility,
     });
   }
@@ -306,6 +281,7 @@ async function compileSkills(context: PluginContext): Promise<void> {
 
 async function compileCommands(context: PluginContext): Promise<void> {
   const { input, inspection, ir, diagnostics } = context;
+  if (featureToggle(context, 'commands') === 'disabled') return;
   for (const commandFileName of inspection.commandFiles) {
     const component = `commands/${commandFileName}`;
     if (!policyGate(context, 'commands', component)) continue;
@@ -342,44 +318,10 @@ async function compileCommands(context: PluginContext): Promise<void> {
   }
 }
 
-async function compileSubagents(context: PluginContext): Promise<void> {
-  const { input, inspection, ir, diagnostics } = context;
-  for (const agentFileName of inspection.agentFiles) {
-    const component = `agents/${agentFileName}`;
-    if (!policyGate(context, 'subagents', component)) continue;
-
-    const text = await fs.readFile(path.join(input.rootDir, 'agents', agentFileName), 'utf8');
-    const { frontmatter, body } = parseFrontmatter(text);
-    const parsed = agentFrontmatterSchema.safeParse(frontmatter);
-    if (!parsed.success) {
-      diagnostics.add({
-        code: DiagnosticCodes.ManifestInvalid,
-        severity: 'error',
-        pluginId: input.locked.id,
-        component,
-        compatibility: 'unsupported',
-        message: `Agent frontmatter invalid: ${parsed.error.issues[0]?.message ?? 'missing description'}`,
-        sourceLocation: { path: component },
-      });
-      continue;
-    }
-    const name = normalizeName(parsed.data.name ?? agentFileName.replace(/\.md$/, ''));
-    ir.subagents.push({
-      id: qualifiedComponentId(input.runtimeNamespace, name),
-      pluginId: input.locked.id,
-      name,
-      description: parsed.data.description,
-      systemPrompt: body.trim(),
-      model: parsed.data.model ? { requested: parsed.data.model, advisory: true } : undefined,
-      allowedTools: normalizeToolList(parsed.data.tools),
-      compatibility: 'translated',
-    });
-  }
-}
-
 async function compileMcpServers(context: PluginContext): Promise<void> {
   const { input, inspection, ir, diagnostics } = context;
   if (!inspection.hasMcpConfig) return;
+  if (featureToggle(context, 'mcp') === 'disabled') return;
   const raw: unknown = JSON.parse(await fs.readFile(path.join(input.rootDir, '.mcp.json'), 'utf8'));
   const parsed = mcpConfigFileSchema.safeParse(raw);
   if (!parsed.success) {
@@ -422,6 +364,7 @@ async function compileMcpServers(context: PluginContext): Promise<void> {
 async function compileHooks(context: PluginContext): Promise<void> {
   const { input, inspection, ir, diagnostics } = context;
   if (!inspection.hasHooks) return;
+  if (featureToggle(context, 'hooks') === 'disabled') return;
   const raw: unknown = JSON.parse(
     await fs.readFile(path.join(input.rootDir, 'hooks', 'hooks.json'), 'utf8'),
   );
@@ -506,7 +449,7 @@ function compileAdvisoryComponents(context: PluginContext): void {
       component: 'monitors/monitors.json',
       compatibility: 'unsupported',
       message:
-        'Background monitors are not supported in request-scoped runtimes (RFC 16.8); generate an external worker instead.',
+        'Background monitors are not supported in request-scoped runtimes (RFC 26); generate an external worker instead.',
     });
   }
 }
@@ -573,7 +516,7 @@ function recordPluginAndProvenance(context: PluginContext): void {
     license: manifest.license,
     source: locked.source,
     contentDigest: locked.contentDigest,
-    policyProfile: locked.policyProfile,
+    trustPolicy: locked.trustPolicy,
     capabilities: [...context.capabilities].sort((a, b) => a.localeCompare(b)),
     compatibility:
       context.blocked || context.degraded ? 'partial' : hasNativeSkills ? 'native' : 'translated',
@@ -591,21 +534,7 @@ function recordPluginAndProvenance(context: PluginContext): void {
     sourceType: locked.source.type,
     sourceIdentity: locked.source.resolvedCommit ?? locked.source.integrity ?? locked.source.uri,
     contentDigest: locked.contentDigest,
-    resolverVersion: (context.options.generatedBy ?? GENERATED_BY).version,
-    policyProfile: locked.policyProfile,
+    resolverVersion: (context.options.compiler ?? COMPILER_IDENTITY).version,
+    trustPolicy: locked.trustPolicy,
   });
-}
-
-async function stageDirectory(
-  filesToCopy: Map<string, string>,
-  sourceDir: string,
-  bundleDir: string,
-): Promise<void> {
-  const entries = await fs.readdir(sourceDir, { withFileTypes: true, recursive: true });
-  for (const entry of entries) {
-    if (!entry.isFile()) continue;
-    const absolute = path.join(entry.parentPath, entry.name);
-    const relative = path.relative(sourceDir, absolute).split(path.sep).join('/');
-    filesToCopy.set(`${bundleDir}/${relative}`, absolute);
-  }
 }

@@ -79,12 +79,14 @@ async function writeFullPlugin(root: string): Promise<void> {
 function makeInput(rootDir: string, profile = 'third-party-restricted'): PluginCompileInput {
   const locked: LockedPlugin = {
     id: 'acme-review@direct',
-    policyProfile: profile,
+    trustPolicy: profile,
     version: '2.1.0',
     source: { type: 'local', uri: rootDir },
     pluginRoot: '.',
     contentDigest: 'sha256:' + 'a'.repeat(64),
     manifestDigest: 'sha256:' + 'b'.repeat(64),
+    detectedCapabilities: [],
+    compilerProfile: 'claude-plugin-v2026-07',
     files: {},
   };
   return {
@@ -156,7 +158,7 @@ describe('compilePluginSet with default (restricted) policy', () => {
     expect(ir.commands[0]?.usesArguments).toBe(true);
 
     // subagents: review → allowed=false under default non-strict? review is not allow → blocked
-    expect(ir.subagents).toHaveLength(0);
+    expect(ir.syncSubagents).toHaveLength(0);
 
     // remote http MCP requires review; stdio denied.
     expect(ir.mcpServers).toHaveLength(0);
@@ -223,11 +225,11 @@ describe('compilePluginSet with trusted-internal profile', () => {
     });
     const { ir } = result;
 
-    expect(ir.subagents).toHaveLength(1);
-    expect(ir.subagents[0]).toMatchObject({
+    expect(ir.syncSubagents).toHaveLength(1);
+    expect(ir.syncSubagents[0]).toMatchObject({
       id: 'acme-review:security-reviewer',
-      allowedTools: ['Grep', 'Read'],
-      model: { requested: 'sonnet', advisory: true },
+      toolRefs: ['Grep', 'Read'],
+      modelRef: { requested: 'sonnet', advisory: true },
     });
 
     const remote = ir.mcpServers.find((server) => server.transport === 'streamable-http');
