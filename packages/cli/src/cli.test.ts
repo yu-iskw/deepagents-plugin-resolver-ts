@@ -128,6 +128,18 @@ describe('deepagents-plugins CLI', () => {
     expect(captured.lines.join('\n')).toContain('sarif-2.1.0');
   });
 
+  it('capabilities reports detection and required-vs-available comparison', async () => {
+    const { code, io: captured } = await run(['--json', 'capabilities']);
+    expect(code).toBe(0);
+    const parsed = JSON.parse(captured.lines.join('\n')) as {
+      capabilities: { skills: boolean; interpreter: { available: boolean } };
+      comparison: { capability: string; required: boolean; available: boolean }[];
+    };
+    // deepagents is installed in this workspace, so detection succeeds.
+    expect(parsed.capabilities.skills).toBe(true);
+    expect(parsed.comparison.some((entry) => entry.capability === 'skills')).toBe(true);
+  });
+
   it('unknown commands exit with configuration error', async () => {
     expect((await run(['definitely-not-a-command'])).code).toBe(2);
   });

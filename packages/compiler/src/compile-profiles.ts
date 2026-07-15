@@ -6,11 +6,98 @@ import {
   claudeProfileFileSchema,
   normalizeName,
   qualifiedComponentId,
+  type ClaudeProfileFile,
   type CompiledHarnessProfileV2,
   type ProfileField,
 } from '@deepagents-plugins/schema';
 
 import { featureToggle, policyGate, type PluginContext } from './compile-context.js';
+
+interface FieldGovernor {
+  strippedCount: number;
+  allowed(field: ProfileField, component: string): boolean;
+}
+
+function makeFieldGovernor(context: PluginContext): FieldGovernor {
+  const governor: FieldGovernor = {
+    strippedCount: 0,
+    allowed(field: ProfileField, component: string): boolean {
+      const decision = context.options.policy.evaluateProfileField({
+        pluginId: context.input.locked.id,
+        profile: context.input.locked.trustPolicy,
+        contentDigest: context.input.locked.contentDigest,
+        field,
+      });
+      if (decision.effect === 'allow') return true;
+      governor.strippedCount += 1;
+      context.diagnostics.add({
+        code: DiagnosticCodes.ProfileFieldDenied,
+        severity: 'warning',
+        pluginId: context.input.locked.id,
+        component: `${component}#${field}`,
+        compatibility: 'blocked-by-policy',
+        message: decision.reason,
+        remediation: decision.remediation,
+      });
+      return false;
+    },
+  };
+  return governor;
+}
+
+function governToolField(
+  fragment: ClaudeProfileFile,
+  governor: FieldGovernor,
+  component: string,
+  pluginPrefix: string,
+  config: CompiledHarnessProfileV2['config'],
+): void {
+  if (fragment.toolDescriptionOverrides !== undefined) {
+    const allowed: Record<string, string> = {};
+    for (const [tool, description] of Object.entries(fragment.toolDescriptionOverrides)) {
+      const field: ProfileField = tool.startsWith(pluginPrefix)
+        ? 'overridePluginToolDescription'
+        : 'overrideApplicationToolDescription';
+      if (governor.allowed(field, component)) allowed[tool] = description;
+    }
+    if (Object.keys(allowed).length > 0) config.toolDescriptionOverrides = allowed;
+  }
+  if (fragment.excludedTools !== undefined) {
+    const allowed = fragment.excludedTools.filter((tool) =>
+      governor.allowed(
+        tool.startsWith(pluginPrefix) ? 'excludePluginTool' : 'excludeApplicationTool',
+        component,
+      ),
+    );
+    if (allowed.length > 0) config.excludedTools = allowed;
+  }
+}
+
+function governFragment(
+  context: PluginContext,
+  fragment: ClaudeProfileFile,
+  component: string,
+): { config: CompiledHarnessProfileV2['config']; stripped: boolean } {
+  const governor = makeFieldGovernor(context);
+  const config: CompiledHarnessProfileV2['config'] = {};
+  if (fragment.baseSystemPrompt !== undefined && governor.allowed('basePromptReplacement', component)) {
+    config.baseSystemPrompt = fragment.baseSystemPrompt;
+  }
+  if (fragment.systemPromptSuffix !== undefined && governor.allowed('promptSuffix', component)) {
+    config.systemPromptSuffix = fragment.systemPromptSuffix;
+  }
+  governToolField(fragment, governor, component, `plugin.${context.input.runtimeNamespace}.`, config);
+  if (fragment.excludedMiddleware !== undefined && governor.allowed('excludeMiddleware', component)) {
+    config.excludedMiddleware = fragment.excludedMiddleware;
+  }
+  if (
+    fragment.generalPurposeSubagent !== undefined &&
+    governor.allowed('generalPurposeSubagent', component)
+  ) {
+    config.generalPurposeSubagent = fragment.generalPurposeSubagent;
+  }
+  return { config, stripped: governor.strippedCount > 0 };
+}
 
 /**
  * Compile plugin harness-profile fragments with field governance
@@ -41,71 +128,12 @@ export async function compileProfiles(context: PluginContext): Promise<void> {
       continue;
     }
     const fragment = parsed.data;
-    const registrationKey =
-      fragment.registrationKey ?? profileFileName.replace(/\.json$/, '');
-    const config: CompiledHarnessProfileV2['config'] = {};
-    let stripped = false;
-
-    const fieldAllowed = (field: ProfileField): boolean => {
-      const decision = context.options.policy.evaluateProfileField({
-        pluginId: input.locked.id,
-        profile: input.locked.trustPolicy,
-        contentDigest: input.locked.contentDigest,
-        field,
-      });
-      if (decision.effect === 'allow') return true;
-      stripped = true;
-      context.diagnostics.add({
-        code: DiagnosticCodes.ProfileFieldDenied,
-        severity: 'warning',
-        pluginId: input.locked.id,
-        component: `${component}#${field}`,
-        compatibility: 'blocked-by-policy',
-        message: decision.reason,
-        remediation: decision.remediation,
-      });
-      return false;
-    };
-
-    if (fragment.baseSystemPrompt !== undefined && fieldAllowed('basePromptReplacement')) {
-      config.baseSystemPrompt = fragment.baseSystemPrompt;
-    }
-    if (fragment.systemPromptSuffix !== undefined && fieldAllowed('promptSuffix')) {
-      config.systemPromptSuffix = fragment.systemPromptSuffix;
-    }
-    if (fragment.toolDescriptionOverrides !== undefined) {
-      const pluginPrefix = `plugin.${input.runtimeNamespace}.`;
-      const allowed: Record<string, string> = {};
-      for (const [tool, description] of Object.entries(fragment.toolDescriptionOverrides)) {
-        const field: ProfileField = tool.startsWith(pluginPrefix)
-          ? 'overridePluginToolDescription'
-          : 'overrideApplicationToolDescription';
-        if (fieldAllowed(field)) allowed[tool] = description;
-      }
-      if (Object.keys(allowed).length > 0) config.toolDescriptionOverrides = allowed;
-    }
-    if (fragment.excludedTools !== undefined) {
-      const pluginPrefix = `plugin.${input.runtimeNamespace}.`;
-      const allowed = fragment.excludedTools.filter((tool) =>
-        fieldAllowed(
-          tool.startsWith(pluginPrefix) ? 'excludePluginTool' : 'excludeApplicationTool',
-        ),
-      );
-      if (allowed.length > 0) config.excludedTools = allowed;
-    }
-    if (fragment.excludedMiddleware !== undefined && fieldAllowed('excludeMiddleware')) {
-      config.excludedMiddleware = fragment.excludedMiddleware;
-    }
-    if (fragment.generalPurposeSubagent !== undefined && fieldAllowed('generalPurposeSubagent')) {
-      config.generalPurposeSubagent = fragment.generalPurposeSubagent;
-    }
+    const registrationKey = fragment.registrationKey ?? profileFileName.replace(/\.json$/, '');
+    const { config, stripped } = governFragment(context, fragment, component);
 
     if (stripped) context.degraded = true;
     ir.harnessProfiles.push({
-      id: qualifiedComponentId(
-        input.runtimeNamespace,
-        `profile-${normalizeName(registrationKey)}`,
-      ),
+      id: qualifiedComponentId(input.runtimeNamespace, `profile-${normalizeName(registrationKey)}`),
       pluginId: input.locked.id,
       registrationKey,
       priority: fragment.priority ?? 0,

@@ -362,7 +362,7 @@ async function compileMcpServers(context: PluginContext): Promise<void> {
 }
 
 async function compileHooks(context: PluginContext): Promise<void> {
-  const { input, inspection, ir, diagnostics } = context;
+  const { input, inspection, diagnostics } = context;
   if (!inspection.hasHooks) return;
   if (featureToggle(context, 'hooks') === 'disabled') return;
   const raw: unknown = JSON.parse(
@@ -384,35 +384,48 @@ async function compileHooks(context: PluginContext): Promise<void> {
     let index = 0;
     for (const matcherEntry of parsed.data.hooks[claudeEvent] ?? []) {
       for (const definition of matcherEntry.hooks) {
-        const component = `hooks/hooks.json#${claudeEvent}[${index}]`;
-        const translation = translateClaudeHook(
-          input.locked.id,
-          input.runtimeNamespace,
-          claudeEvent,
-          index,
-          definition,
-          matcherEntry.matcher,
-        );
+        compileOneHook(context, claudeEvent, index, definition, matcherEntry.matcher);
         index += 1;
-        if (translation.hook.action.type === 'unsupported') {
-          context.degraded = true;
-          diagnostics.add({
-            code: DiagnosticCodes.ComponentUnsupported,
-            severity: 'warning',
-            pluginId: input.locked.id,
-            component,
-            compatibility: 'unsupported',
-            message: translation.hook.action.reason,
-          });
-          ir.hooks.push(translation.hook);
-          continue;
-        }
-        if (!policyGate(context, translation.capability, component)) continue;
-        if (translation.hook.compatibility === 'partial') context.degraded = true;
-        ir.hooks.push(translation.hook);
       }
     }
   }
+}
+
+
+
+function compileOneHook(
+  context: PluginContext,
+  claudeEvent: string,
+  index: number,
+  definition: Parameters<typeof translateClaudeHook>[4],
+  matcher: string | undefined,
+): void {
+  const { input, ir, diagnostics } = context;
+  const component = `hooks/hooks.json#${claudeEvent}[${index}]`;
+  const translation = translateClaudeHook(
+    input.locked.id,
+    input.runtimeNamespace,
+    claudeEvent,
+    index,
+    definition,
+    matcher,
+  );
+  if (translation.hook.action.type === 'unsupported') {
+    context.degraded = true;
+    diagnostics.add({
+      code: DiagnosticCodes.ComponentUnsupported,
+      severity: 'warning',
+      pluginId: input.locked.id,
+      component,
+      compatibility: 'unsupported',
+      message: translation.hook.action.reason,
+    });
+    ir.hooks.push(translation.hook);
+    return;
+  }
+  if (!policyGate(context, translation.capability, component)) return;
+  if (translation.hook.compatibility === 'partial') context.degraded = true;
+  ir.hooks.push(translation.hook);
 }
 
 function compileAdvisoryComponents(context: PluginContext): void {

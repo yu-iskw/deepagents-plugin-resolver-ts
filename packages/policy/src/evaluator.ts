@@ -29,57 +29,36 @@ export interface CapabilityQuery {
   contentDigest?: string;
 }
 
+const CAPABILITY_ACCESSORS: Record<string, (rules: PolicyRules) => PolicyEffect | undefined> = {
+  skills: (rules) => rules.skills,
+  commands: (rules) => rules.commands,
+  subagents: (rules) => rules.subagents,
+  asyncSubagents: (rules) => rules.asyncSubagents,
+  'memory.static': (rules) => rules.memory?.static,
+  'memory.writable': (rules) => rules.memory?.writable,
+  'profiles.fragment': (rules) => rules.profiles?.fragment,
+  interpreter: (rules) => rules.interpreter,
+  ptc: (rules) => rules.ptc,
+  rubrics: (rules) => rules.rubrics,
+  hitl: (rules) => rules.hitl,
+  'mcp.remoteHttp': (rules) => rules.mcp?.remoteHttp,
+  'mcp.stdio': (rules) => rules.mcp?.stdio,
+  'hooks.middleware': (rules) => rules.hooks?.middleware,
+  'hooks.webhook': (rules) => rules.hooks?.webhook,
+  'hooks.command': (rules) => rules.hooks?.command,
+  lsp: (rules) => rules.lsp,
+  monitors: (rules) => rules.monitors,
+  binaries: (rules) => rules.binaries,
+  settings: (rules) => rules.settings,
+  unknownComponents: (rules) => rules.unknownComponents,
+};
+
 function capabilityEffect(
   rules: PolicyRules | undefined,
   capability: string,
 ): PolicyEffect | undefined {
   if (!rules) return undefined;
-  switch (capability) {
-    case 'skills':
-      return rules.skills;
-    case 'commands':
-      return rules.commands;
-    case 'subagents':
-      return rules.subagents;
-    case 'asyncSubagents':
-      return rules.asyncSubagents;
-    case 'memory.static':
-      return rules.memory?.static;
-    case 'memory.writable':
-      return rules.memory?.writable;
-    case 'profiles.fragment':
-      return rules.profiles?.fragment;
-    case 'interpreter':
-      return rules.interpreter;
-    case 'ptc':
-      return rules.ptc;
-    case 'rubrics':
-      return rules.rubrics;
-    case 'hitl':
-      return rules.hitl;
-    case 'mcp.remoteHttp':
-      return rules.mcp?.remoteHttp;
-    case 'mcp.stdio':
-      return rules.mcp?.stdio;
-    case 'hooks.middleware':
-      return rules.hooks?.middleware;
-    case 'hooks.webhook':
-      return rules.hooks?.webhook;
-    case 'hooks.command':
-      return rules.hooks?.command;
-    case 'lsp':
-      return rules.lsp;
-    case 'monitors':
-      return rules.monitors;
-    case 'binaries':
-      return rules.binaries;
-    case 'settings':
-      return rules.settings;
-    case 'unknownComponents':
-      return rules.unknownComponents;
-    default:
-      return undefined;
-  }
+  return CAPABILITY_ACCESSORS[capability]?.(rules);
 }
 
 /**

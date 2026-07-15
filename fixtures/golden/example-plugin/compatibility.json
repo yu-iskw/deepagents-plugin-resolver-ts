@@ -1,6 +1,14 @@
 {
   "diagnostics": [
     {
+      "code": "DAP4209",
+      "compatibility": "requires-approval",
+      "component": "agents/async-researcher.md",
+      "message": "Capability \"asyncSubagents\" requires review under trust policy \"trusted-internal\".",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "warning"
+    },
+    {
       "code": "DAP4002",
       "compatibility": "partial",
       "component": "commands/review.md",
@@ -10,6 +18,14 @@
       "sourceLocation": {
         "path": "commands/review.md"
       }
+    },
+    {
+      "code": "DAP4208",
+      "compatibility": "requires-adapter",
+      "component": "rubrics/review-quality.json",
+      "message": "Rubric templates are compiled as data only; activation requires an application-registered rubric adapter.",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "info"
     }
   ]
 }

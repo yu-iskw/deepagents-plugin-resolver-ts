@@ -1,0 +1,8 @@
+{
+  "name": "review-quality",
+  "criteria": [
+    "Findings reference concrete files and lines",
+    "No false claims of vulnerabilities"
+  ],
+  "maxIterations": 3
+}

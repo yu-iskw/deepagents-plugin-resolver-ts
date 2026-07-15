@@ -1,7 +1,10 @@
 bundle-manifest.json
 compatibility-report.json
 ir/plugin-set.json
+memory/example-plugin/guidelines.md
 plugins/example-plugin/manifest.json
+profiles/harness-profiles.json
 provenance.json
+rubrics/example-plugin/review-quality.json
 skills/example-plugin/security-review/SKILL.md
 skills/example-plugin/security-review/references/checklist.md

@@ -19,9 +19,14 @@ import {
   type PipelineOptions,
 } from '@deepagents-plugins/core';
 import {
+  detectDeepAgentsCapabilities,
+} from '@deepagents-plugins/runtime-deepagents';
+import {
   ExitCodes,
   PluginResolutionError,
   canonicalJsonStringify,
+  capabilityAvailable,
+  requiredCapabilitiesFromIr,
 } from '@deepagents-plugins/schema';
 import { Command } from 'commander';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -69,7 +74,7 @@ function pipelineOptions(flags: GlobalFlags): PipelineOptions {
   };
 }
 
-const STARTER_MANIFEST = `apiVersion: deepagents.plugins/v1
+const STARTER_MANIFEST = `apiVersion: deepagents.plugins/v2
 kind: PluginSet
 
 metadata:
@@ -82,7 +87,23 @@ plugins:
     source:
       type: local
       path: ./plugins/project-local
-    policyProfile: development
+    trustPolicy: development
+    features:
+      skills: enabled
+      commands: enabled
+      memory: static-only
+      rubrics: templates-only
+
+runtime:
+  compatibilityMode: standard
+  interpreter:
+    enabled: false
+    ptcDefault: deny
+  asyncSubagents:
+    allowedHosts: []
+  streaming:
+    attachPluginProvenance: true
+    redactToolArguments: true
 
 output:
   directory: .deepagents/plugins
@@ -208,7 +229,7 @@ export function createProgram(io: CliIo = defaultIo): Command {
       io.out(`Bundle written to ${result.outputDir}`);
       io.out(`Bundle digest: ${result.bundle.bundleDigest}`);
       io.out(
-        `Components: ${result.compiled.ir.skills.length} skill(s), ${result.compiled.ir.commands.length} command(s), ${result.compiled.ir.subagents.length} subagent(s), ${result.compiled.ir.mcpServers.length} MCP server(s).`,
+        `Components: ${result.compiled.ir.skills.length} skill(s), ${result.compiled.ir.commands.length} command(s), ${result.compiled.ir.syncSubagents.length} sync subagent(s), ${result.compiled.ir.asyncSubagents.length} async subagent(s), ${result.compiled.ir.memorySources.length} memory source(s), ${result.compiled.ir.harnessProfiles.length} profile(s), ${result.compiled.ir.mcpServers.length} MCP server(s).`,
       );
       if (flags().sarif) {
         await fs.writeFile(
@@ -256,7 +277,42 @@ export function createProgram(io: CliIo = defaultIo): Command {
       }
       for (const plugin of lockfile.plugins) {
         io.out(
-          `${plugin.id}\t${plugin.version ?? '-'}\t${plugin.source.type}\t${plugin.policyProfile}`,
+          `${plugin.id}\t${plugin.version ?? '-'}\t${plugin.source.type}\t${plugin.trustPolicy}`,
+        );
+      }
+    });
+
+  program
+    .command('capabilities')
+    .description('detect installed Deep Agents capabilities and compare with the plugin set')
+    .action(async () => {
+      const capabilities = await detectDeepAgentsCapabilities();
+      let comparison: { capability: string; required: boolean; available: boolean }[] = [];
+      try {
+        const { compiled } = await auditPluginSetFromProject(pipelineOptions(flags()));
+        comparison = requiredCapabilitiesFromIr(compiled.ir).map((requirement) => ({
+          capability: requirement.capability,
+          required: requirement.required,
+          available: capabilityAvailable(capabilities, requirement.capability),
+        }));
+      } catch {
+        // No manifest/lockfile: report detection only.
+      }
+      if (flags().json) {
+        io.out(canonicalJsonStringify({ capabilities, comparison }).trimEnd());
+        return;
+      }
+      io.out(`Deep Agents detected: ${capabilities.skills ? 'yes' : 'no'}`);
+      if (capabilities.version) io.out(`Version: ${capabilities.version}`);
+      io.out(
+        `skills=${capabilities.skills} memory=${capabilities.memory} harnessProfiles=${capabilities.harnessProfiles} syncSubagents=${capabilities.syncSubagents} asyncSubagents=${capabilities.asyncSubagents} interruptOn=${capabilities.interruptOn} permissions=${capabilities.permissions} streamTransformers=${capabilities.streamTransformers}`,
+      );
+      io.out(
+        `interpreter=${capabilities.interpreter.available} ptc=${capabilities.interpreter.ptc} rubric=${capabilities.rubric.available}`,
+      );
+      for (const entry of comparison) {
+        io.out(
+          `${entry.available ? 'ok  ' : entry.required ? 'FAIL' : 'warn'} ${entry.capability}${entry.required ? ' (required)' : ''}`,
         );
       }
     });

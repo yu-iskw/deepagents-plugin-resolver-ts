@@ -7,6 +7,7 @@ import {
   writeBundle,
   type CompatibilityMode,
   type CompileResult,
+  type PluginCompileInput,
 } from '@deepagents-plugins/compiler';
 import { PolicyEvaluator } from '@deepagents-plugins/policy';
 import {
@@ -82,6 +83,17 @@ export interface PipelineResult {
   outputDir: string;
 }
 
+/** Attach per-plugin feature toggles from the manifest to compile inputs. */
+function withFeatures(
+  artifacts: ResolvePluginSetResult['artifacts'],
+  manifest: PluginSetManifest,
+): PluginCompileInput[] {
+  return artifacts.map((artifact) => ({
+    ...artifact,
+    features: manifest.plugins.find((plugin) => plugin.id === artifact.locked.id)?.features,
+  }));
+}
+
 async function buildPolicyEvaluator(options: PipelineOptions): Promise<PolicyEvaluator> {
   const document = options.policyPath ? await loadPolicyDocument(options.policyPath) : undefined;
   const approvals = options.approvalPaths ? await loadApprovals(options.approvalPaths) : [];
@@ -144,10 +156,11 @@ export async function auditPluginSetFromProject(options: PipelineOptions): Promi
 }> {
   const { manifest, resolution } = await resolvePluginSetFromProject(options);
   const policy = await buildPolicyEvaluator(options);
-  const compiled = await compilePluginSet(resolution.artifacts, {
+  const compiled = await compilePluginSet(withFeatures(resolution.artifacts, manifest), {
     policy,
     compatibilityMode: 'permissive',
     pluginSetDigest: sha256DigestOfJson(manifest),
+    runtime: manifest.runtime,
   });
   return { manifest, resolution, compiled };
 }
@@ -159,10 +172,11 @@ export async function compilePluginSetFromProject(
   const { manifest, resolution } = await resolvePluginSetFromProject(options);
   const policy = await buildPolicyEvaluator(options);
 
-  const compiled = await compilePluginSet(resolution.artifacts, {
+  const compiled = await compilePluginSet(withFeatures(resolution.artifacts, manifest), {
     policy,
-    compatibilityMode: options.compatibilityMode ?? 'standard',
+    compatibilityMode: options.compatibilityMode ?? manifest.runtime.compatibilityMode,
     pluginSetDigest: sha256DigestOfJson(manifest),
+    runtime: manifest.runtime,
   });
 
   const outputDir = path.resolve(
