@@ -1,0 +1,44 @@
+apiVersion: deepagents.plugins/v2
+kind: PluginSet
+
+metadata:
+  name: official-marketplace-example
+
+marketplaces:
+  - name: claude-plugins-official
+    source:
+      type: github
+      repository: anthropics/claude-plugins-official
+      ref: main
+
+plugins:
+  - id: frontend-design@claude-plugins-official
+    trustPolicy: third-party-restricted
+    features: &officialFeatures
+      skills: enabled
+      commands: enabled
+      syncSubagents: enabled
+      mcp: disabled
+      hooks: disabled
+  - id: code-review@claude-plugins-official
+    trustPolicy: third-party-restricted
+    features: *officialFeatures
+  - id: commit-commands@claude-plugins-official
+    trustPolicy: third-party-restricted
+    features: *officialFeatures
+  - id: feature-dev@claude-plugins-official
+    trustPolicy: third-party-restricted
+    features: *officialFeatures
+  - id: pr-review-toolkit@claude-plugins-official
+    trustPolicy: third-party-restricted
+    features: *officialFeatures
+
+runtime:
+  compatibilityMode: standard
+
+output:
+  directory: .deepagents/plugins
+  reproducible: true
+  includeSourceFiles: true
+  emitCompatibilityReport: true
+  emitSbom: false

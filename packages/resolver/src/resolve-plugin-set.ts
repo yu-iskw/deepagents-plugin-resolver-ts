@@ -25,7 +25,7 @@ import { marketplaceEntryToSourceSpec, readMarketplaceManifest } from './marketp
 
 import type { PluginSourceResolver, ResolveContext, ResolvedPluginSource } from './context.js';
 
-export const RESOLVER_VERSION = '0.2.0';
+export const RESOLVER_VERSION = '0.2.1';
 
 export interface ResolvedPluginArtifact {
   locked: LockedPlugin;
@@ -65,6 +65,27 @@ function toLockedSource(resolved: ResolvedPluginSource): LockedSourceV2 {
     version: resolved.version,
     integrity: resolved.expectedIntegrity,
     pluginRoot: resolved.pluginRoot,
+  };
+}
+
+/**
+ * Marketplace checkouts live under a fresh workDir every resolve. Pinning the
+ * absolute checkout path into the lockfile breaks --frozen-lockfile. Rewrite
+ * marketplace-relative local URIs to a stable marketplace:// locator instead.
+ */
+function lockedSourceForResolved(
+  resolved: ResolvedPluginSource,
+  marketplace?: { name: string; rootDir: string },
+): LockedSourceV2 {
+  const locked = toLockedSource(resolved);
+  if (!marketplace || resolved.sourceType !== 'local') return locked;
+  const relative = path.relative(marketplace.rootDir, resolved.uri);
+  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+    return locked;
+  }
+  return {
+    ...locked,
+    uri: `marketplace://${marketplace.name}/${relative.split(path.sep).join('/')}`,
   };
 }
 
@@ -159,6 +180,7 @@ export async function resolvePluginSet(
     const { pluginName, marketplaceName } = parsePluginId(declaration.id);
     let sourceSpec = declaration.source;
     const trustPolicy = declaration.trustPolicy ?? defaultProfile;
+    let marketplaceOrigin: { name: string; rootDir: string } | undefined;
 
     if (!sourceSpec) {
       const marketplaceRoot = marketplaceRoots.get(marketplaceName);
@@ -178,6 +200,7 @@ export async function resolvePluginSet(
         );
       }
       sourceSpec = marketplaceEntryToSourceSpec(entry.source, marketplaceRoot);
+      marketplaceOrigin = { name: marketplaceName, rootDir: marketplaceRoot };
     }
 
     options.assertSourceAllowed?.(sourceSpec, trustPolicy);
@@ -210,7 +233,7 @@ export async function resolvePluginSet(
       alias: declaration.alias,
       version: pluginManifest.version ?? resolved.version,
       trustPolicy,
-      source: toLockedSource(resolved),
+      source: lockedSourceForResolved(resolved, marketplaceOrigin),
       pluginRoot: resolved.pluginRoot ?? '.',
       contentDigest: digest.contentDigest,
       manifestDigest,

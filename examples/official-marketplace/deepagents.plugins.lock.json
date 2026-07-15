@@ -1,0 +1,126 @@
+{
+  "lockfileVersion": 2,
+  "marketplaces": [
+    {
+      "contentDigest": "sha256:dc21dda6fa16e53a0d3e8bc25f3ad5ee744487068997b98c50248e917f66cd55",
+      "name": "claude-plugins-official",
+      "source": {
+        "pluginRoot": ".",
+        "requestedRef": "main",
+        "resolvedCommit": "95380b3cd58f7fbf575ebda0fe291224ba028317",
+        "type": "github",
+        "uri": "https://github.com/anthropics/claude-plugins-official.git"
+      }
+    }
+  ],
+  "pluginSetDigest": "sha256:3c758edd287f8928762cb6d73b85e460a097018fdbf607360590ead84516c93e",
+  "plugins": [
+    {
+      "compilerProfile": "claude-plugin-v2026-07",
+      "contentDigest": "sha256:5780bb1aa05046439f72aaddca1011ea1b3124e4d19b9d0f918640d36f01b185",
+      "detectedCapabilities": ["commands"],
+      "files": {
+        ".claude-plugin/plugin.json": "sha256:61af303bf05e05338c82910405292059c932e51567d8cf368c40e77519d1c742",
+        "README.md": "sha256:1fca74bab6969b609519927ae49112760e15d8113eef6bbcf9b9a96c49d73c89",
+        "commands/code-review.md": "sha256:7d5a0bc9a41babad32a387152f9680316997bc4ad376928827d670b1760cc890"
+      },
+      "id": "code-review@claude-plugins-official",
+      "manifestDigest": "sha256:61af303bf05e05338c82910405292059c932e51567d8cf368c40e77519d1c742",
+      "pluginRoot": ".",
+      "source": {
+        "pluginRoot": ".",
+        "type": "local",
+        "uri": "marketplace://claude-plugins-official/plugins/code-review"
+      },
+      "trustPolicy": "third-party-restricted"
+    },
+    {
+      "compilerProfile": "claude-plugin-v2026-07",
+      "contentDigest": "sha256:35c2d56098a752f01999ef29af5ad9603b081fbc5bceb491bd7ab03b84cfdce9",
+      "detectedCapabilities": ["commands"],
+      "files": {
+        ".claude-plugin/plugin.json": "sha256:ad7e089b8ab209e4a4a72438dabe5db77c32de9d0131d91b1d4816233e1653a1",
+        "README.md": "sha256:03172e9933f1c1556a3a32a98dc54b31e73ebe57d3348e58aced204e0a9f526b",
+        "commands/clean_gone.md": "sha256:4f07fa2ccf4f81a69c6455bdc563b53a3d3b20aea6e4e82337c52b172ee02344",
+        "commands/commit-push-pr.md": "sha256:3bc3d171939149cbbef141cbced553dce6ba6f97dac4a764f4ef1e055c35064d",
+        "commands/commit.md": "sha256:d1acbc2bf0c50164f48d6bda872de6a343cd9390954ce903c3431c3119e7f8c4"
+      },
+      "id": "commit-commands@claude-plugins-official",
+      "manifestDigest": "sha256:ad7e089b8ab209e4a4a72438dabe5db77c32de9d0131d91b1d4816233e1653a1",
+      "pluginRoot": ".",
+      "source": {
+        "pluginRoot": ".",
+        "type": "local",
+        "uri": "marketplace://claude-plugins-official/plugins/commit-commands"
+      },
+      "trustPolicy": "third-party-restricted"
+    },
+    {
+      "compilerProfile": "claude-plugin-v2026-07",
+      "contentDigest": "sha256:f44a5b9272f0ee84a7cc1fbec593dd9d025c2a8e2cb503ac70eecac37bce32a1",
+      "detectedCapabilities": ["agents", "commands"],
+      "files": {
+        ".claude-plugin/plugin.json": "sha256:66e5b7724eae5bc5b24f18fafe4c425ba3763c543218ba1c68dcc22c589a99d9",
+        "README.md": "sha256:8dca1b27e026cab4b8bb8118709935b08fc27d2911efd9e1061b9836b534fbc1",
+        "agents/code-architect.md": "sha256:c50fb08d59a4bbd19660860626a049e44cf1a2b0c1cf782e6c7a99ba7e71b0c3",
+        "agents/code-explorer.md": "sha256:3b277703de7458988ec3b8021c716f79f642e174950ed332629310f68322029a",
+        "agents/code-reviewer.md": "sha256:a7df173bf77a00da5584c6401a1061524fdbe477b6fef5dd496d4c7a9113c78c",
+        "commands/feature-dev.md": "sha256:652e5d6264fd253fcb70c2f84de986a88d77109a02410aacd90230a6ab4bf557"
+      },
+      "id": "feature-dev@claude-plugins-official",
+      "manifestDigest": "sha256:66e5b7724eae5bc5b24f18fafe4c425ba3763c543218ba1c68dcc22c589a99d9",
+      "pluginRoot": ".",
+      "source": {
+        "pluginRoot": ".",
+        "type": "local",
+        "uri": "marketplace://claude-plugins-official/plugins/feature-dev"
+      },
+      "trustPolicy": "third-party-restricted"
+    },
+    {
+      "compilerProfile": "claude-plugin-v2026-07",
+      "contentDigest": "sha256:253a20d104d834a76686ea71aab301ca866965d3735ba026d019bd4fe6ffbede",
+      "detectedCapabilities": ["skills"],
+      "files": {
+        ".claude-plugin/plugin.json": "sha256:fd9a7db11f5dec771d9e29ad1d6a3298c12f04c81c3a6457099b81fe477d835d",
+        "README.md": "sha256:5351137ecb2c5adfcdbadcdbbeda1eab16409bae98eb53f62f945514552d6706",
+        "skills/frontend-design/SKILL.md": "sha256:d39adf3a983de7dafc75991590d54f091755f7e4163d5a5ed085ecd719157184"
+      },
+      "id": "frontend-design@claude-plugins-official",
+      "manifestDigest": "sha256:fd9a7db11f5dec771d9e29ad1d6a3298c12f04c81c3a6457099b81fe477d835d",
+      "pluginRoot": ".",
+      "source": {
+        "pluginRoot": ".",
+        "type": "local",
+        "uri": "marketplace://claude-plugins-official/plugins/frontend-design"
+      },
+      "trustPolicy": "third-party-restricted"
+    },
+    {
+      "compilerProfile": "claude-plugin-v2026-07",
+      "contentDigest": "sha256:c4523f9f284ced9ea3cf0442bef45a63f91246d46b8ac7871503c968f71a0368",
+      "detectedCapabilities": ["agents", "commands"],
+      "files": {
+        ".claude-plugin/plugin.json": "sha256:7aa64c91a9316ef3641df115414c07c7caee8f48368815dc2950483598321865",
+        "README.md": "sha256:364cb1d46aa64a01016e4ef5f41dfea5bd5e3cf530459409a376feba93dd2b49",
+        "agents/code-reviewer.md": "sha256:533b9967ca21b7e9572236935cada4bfd03d7dd362cb2e680a2d13aa0d699232",
+        "agents/code-simplifier.md": "sha256:da129a12e959b059a7605d093fbc4f8710755ebf0c914ebc3102b5f78831ead1",
+        "agents/comment-analyzer.md": "sha256:da0540c507e42a7f66df0b09f81f3c9d3b246620a8f2be4e84b85b97f7b4e2f5",
+        "agents/pr-test-analyzer.md": "sha256:d369fd3946a814bb7a9d4f32e971722fe259e301878986bc6312d6f6c56014a8",
+        "agents/silent-failure-hunter.md": "sha256:fa9b0daec5a267e7e66435cc48b3328301fc9f70c3af259fe248881327a1babc",
+        "agents/type-design-analyzer.md": "sha256:ad160052fd3b45395d531d5e97e54940a1b660443fb513db3feb613848b6e72d",
+        "commands/review-pr.md": "sha256:5e70c17293a044e1bf9d092c80b5da8b4fd5802ebb07dc53993dec4ba7ce2fc4"
+      },
+      "id": "pr-review-toolkit@claude-plugins-official",
+      "manifestDigest": "sha256:7aa64c91a9316ef3641df115414c07c7caee8f48368815dc2950483598321865",
+      "pluginRoot": ".",
+      "source": {
+        "pluginRoot": ".",
+        "type": "local",
+        "uri": "marketplace://claude-plugins-official/plugins/pr-review-toolkit"
+      },
+      "trustPolicy": "third-party-restricted"
+    }
+  ],
+  "resolverVersion": "0.2.1"
+}

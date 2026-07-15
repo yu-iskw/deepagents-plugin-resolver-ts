@@ -1,0 +1,30 @@
+{
+  "name": "@deepagents-plugins/example-official-marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Resolve and run curated plugins from anthropics/claude-plugins-official",
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "resolve": "node ../../packages/cli/dist/bin.js resolve --project .",
+    "compile": "node ../../packages/cli/dist/bin.js compile --project . --frozen-lockfile --reproducible",
+    "smoke": "tsx src/load-smoke.ts",
+    "agent": "tsx src/run-agent.ts",
+    "verify": "pnpm resolve && pnpm compile && pnpm smoke && pnpm agent"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/core": "workspace:*",
+    "@langchain/core": "^1.1.0",
+    "@langchain/google-genai": "^2.1.0",
+    "deepagents": "^1.8.0"
+  },
+  "devDependencies": {
+    "@deepagents-plugins/cli": "workspace:*",
+    "@types/node": "^22.20.1",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.3"
+  }
+}

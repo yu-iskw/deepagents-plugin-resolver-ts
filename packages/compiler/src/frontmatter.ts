@@ -5,9 +5,71 @@ export interface ParsedMarkdown {
   body: string;
 }
 
+function coerceScalar(value: string): unknown {
+  if (value === 'true') return true;
+  if (value === 'false') return false;
+  if (value === 'null' || value === '~') return null;
+  if (value === '') return '';
+  if (/^-?\d+(\.\d+)?$/.test(value)) return Number(value);
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+  return value;
+}
+
+/**
+ * Line-oriented fallback for Claude plugin frontmatter. Official plugins often
+ * leave unquoted values that contain ": " (e.g. "Context: ..."), which strict
+ * YAML rejects as nested compact mappings.
+ */
+export function parseLooseFrontmatter(raw: string): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  let currentKey: string | undefined;
+  const currentLines: string[] = [];
+
+  const flush = (): void => {
+    if (currentKey === undefined) return;
+    const joined = currentLines.join('\n').trimEnd();
+    result[currentKey] = coerceScalar(joined.trimStart());
+    currentKey = undefined;
+    currentLines.length = 0;
+  };
+
+  for (const line of raw.split(/\r?\n/)) {
+    const match = /^([A-Za-z0-9_.-]+):\s*(.*)$/.exec(line);
+    if (match && !/^\s/.test(line)) {
+      flush();
+      currentKey = match[1];
+      const rest = match[2] ?? '';
+      if (rest === '|' || rest === '>' || rest === '|-' || rest === '>-') {
+        continue;
+      }
+      currentLines.push(rest);
+      continue;
+    }
+    if (currentKey !== undefined) {
+      currentLines.push(line);
+    }
+  }
+  flush();
+  return result;
+}
+
+function asFrontmatterRecord(parsed: unknown): Record<string, unknown> {
+  if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+    return parsed as Record<string, unknown>;
+  }
+  return {};
+}
+
 /**
  * Parse Markdown frontmatter with safe YAML (core schema, no custom tags).
- * Markdown bodies are treated as opaque text (RFC 14.4).
+ * Falls back to a loose key/value parser when YAML rejects real Claude plugin
+ * files that embed ": " in unquoted scalar values. Markdown bodies stay opaque
+ * (RFC 14.4).
  */
 export function parseFrontmatter(text: string): ParsedMarkdown {
   if (!text.startsWith('---')) {
@@ -19,14 +81,14 @@ export function parseFrontmatter(text: string): ParsedMarkdown {
   }
   const raw = text.slice(4, end);
   const body = text.slice(text.indexOf('\n', end + 1) + 1);
-  const parsed: unknown = parseYaml(raw, { schema: 'core', maxAliasCount: 100 });
-  return {
-    frontmatter:
-      parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? (parsed as Record<string, unknown>)
-        : {},
-    body,
-  };
+  try {
+    return {
+      frontmatter: asFrontmatterRecord(parseYaml(raw, { schema: 'core', maxAliasCount: 100 })),
+      body,
+    };
+  } catch {
+    return { frontmatter: parseLooseFrontmatter(raw), body };
+  }
 }
 
 /** Claude-only template variables that need diagnostics (RFC 16.1). */

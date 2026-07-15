@@ -1,9 +1,12 @@
 # Marketplace example
 
-Consume a plugin published through a Claude Code marketplace. The
-marketplace is a catalog, not a trust authority: the resolved plugin is
-validated and policy-checked like any direct source, and pinned by commit
-SHA in the lockfile.
+Consume plugins published through a Claude Code marketplace. The marketplace
+is a catalog, not a trust authority: each resolved plugin is validated and
+policy-checked like any direct source, and pinned by commit SHA in the
+lockfile.
+
+For a **runnable** end-to-end example against Anthropic’s official catalog,
+see [`../official-marketplace/`](../official-marketplace/).
 
 ```yaml
 # deepagents.plugins.yaml
@@ -12,13 +15,13 @@ kind: PluginSet
 metadata:
   name: marketplace-example
 marketplaces:
-  - name: acme-official
+  - name: claude-plugins-official
     source:
       type: github
-      repository: acme/claude-plugins
+      repository: anthropics/claude-plugins-official
       ref: main
 plugins:
-  - id: review-tools@acme-official
+  - id: frontend-design@claude-plugins-official
     trustPolicy: third-party-restricted
 ```
 
