@@ -1,8 +1,8 @@
 {
-  "name": "typescript-template",
+  "name": "deepagents-plugin-resolver-ts",
   "version": "1.0.0",
   "private": true,
-  "description": "",
+  "description": "Claude Code plugin resolution and compatibility toolchain for Deep Agents JS",
   "keywords": [],
   "license": "Apache-2.0",
   "author": "",
