@@ -1,0 +1,33 @@
+{
+  "name": "@deepagents-plugins/resolver",
+  "version": "0.1.0",
+  "description": "Source and marketplace resolution, lockfile engine, and safe extraction for Claude Code plugins.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/schema": "workspace:*",
+    "tar": "catalog:",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1"
+  }
+}
