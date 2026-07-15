@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
 import { canonicalJsonStringify } from './canonical-json.js';
+import {
+  capabilityAvailable,
+  emptyDeepAgentsCapabilities,
+  requiredCapabilitiesFromIr,
+} from './capabilities.js';
 import { DiagnosticCollector, DiagnosticCodes } from './diagnostics.js';
 import { ExitCodes, PluginResolutionError } from './exit-codes.js';
 import { isSha256Digest, sha256Digest, sha256DigestOfJson } from './hash.js';
@@ -11,11 +16,6 @@ import {
   parsePluginId,
   qualifiedToolId,
 } from './ids.js';
-import {
-  capabilityAvailable,
-  emptyDeepAgentsCapabilities,
-  requiredCapabilitiesFromIr,
-} from './capabilities.js';
 import { compiledPluginSetSchema, IR_SCHEMA_VERSION } from './ir.js';
 import { COMPILER_PROFILE, lockfileSchema } from './lockfile.js';
 import { pluginSetManifestSchema } from './manifest.js';
@@ -339,6 +339,16 @@ describe('capabilities', () => {
     const none = emptyDeepAgentsCapabilities();
     expect(capabilityAvailable(none, 'skills')).toBe(false);
     expect(capabilityAvailable({ ...none, skills: true }, 'skills')).toBe(true);
+    expect(capabilityAvailable({ ...none, memory: true }, 'memory')).toBe(true);
+    expect(capabilityAvailable({ ...none, harnessProfiles: true }, 'harnessProfiles')).toBe(true);
+    expect(capabilityAvailable({ ...none, syncSubagents: true }, 'syncSubagents')).toBe(true);
+    expect(capabilityAvailable({ ...none, asyncSubagents: true }, 'asyncSubagents')).toBe(true);
+    expect(capabilityAvailable({ ...none, interruptOn: true }, 'interruptOn')).toBe(true);
+    expect(capabilityAvailable({ ...none, permissions: true }, 'permissions')).toBe(true);
+    expect(capabilityAvailable({ ...none, streamTransformers: true }, 'streamTransformers')).toBe(
+      true,
+    );
+    expect(capabilityAvailable({ ...none, rubric: { available: true } }, 'rubric')).toBe(true);
     expect(
       capabilityAvailable(
         { ...none, interpreter: { available: true, ptc: false, dynamicSubagents: false } },

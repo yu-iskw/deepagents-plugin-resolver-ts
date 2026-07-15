@@ -79,7 +79,7 @@ describe('golden output for fixtures/plugins/example-plugin (RFC 29.2)', () => {
     // Synthetic locked record with fixed identities so goldens are machine-independent.
     const locked: LockedPlugin = {
       id: 'example-plugin@example-marketplace',
-      policyProfile: 'trusted-internal',
+      trustPolicy: 'trusted-internal',
       version: '1.4.0',
       source: {
         type: 'github',
@@ -91,6 +91,8 @@ describe('golden output for fixtures/plugins/example-plugin (RFC 29.2)', () => {
       pluginRoot: '.',
       contentDigest: `sha256:${'1'.repeat(64)}`,
       manifestDigest: `sha256:${'2'.repeat(64)}`,
+      detectedCapabilities: ['agents', 'commands', 'memory', 'profiles', 'rubrics', 'skills'],
+      compilerProfile: 'claude-plugin-v2026-07',
       files: {},
     };
     const compiled = await compilePluginSet(

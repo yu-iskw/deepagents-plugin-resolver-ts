@@ -7,7 +7,7 @@ SHA in the lockfile.
 
 ```yaml
 # deepagents.plugins.yaml
-apiVersion: deepagents.plugins/v1
+apiVersion: deepagents.plugins/v2
 kind: PluginSet
 metadata:
   name: marketplace-example
@@ -19,7 +19,7 @@ marketplaces:
       ref: main
 plugins:
   - id: review-tools@acme-official
-    policyProfile: third-party-restricted
+    trustPolicy: third-party-restricted
 ```
 
 ```bash

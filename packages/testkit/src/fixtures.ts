@@ -15,15 +15,61 @@ export interface PluginFixtureOptions {
   description?: string;
   skills?: { name: string; description: string; body?: string }[];
   commands?: { name: string; body: string }[];
-  agents?: { name: string; description: string; body?: string }[];
+  agents?: { name: string; description: string; body?: string; endpoint?: string }[];
+  memory?: { name: string; body: string; frontmatter?: string }[];
+  profiles?: { name: string; fragment: Record<string, unknown> }[];
+  rubrics?: { name: string; criteria: string[] }[];
   extraFiles?: Record<string, string>;
+}
+
+type FileWriter = (relative: string, content: string) => Promise<void>;
+
+async function writeMarkdownComponents(
+  write: FileWriter,
+  options: PluginFixtureOptions,
+): Promise<void> {
+  for (const skill of options.skills ?? []) {
+    await write(
+      `skills/${skill.name}/SKILL.md`,
+      `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.body ?? 'Follow the skill instructions.'}\n`,
+    );
+  }
+  for (const command of options.commands ?? []) {
+    await write(`commands/${command.name}.md`, command.body);
+  }
+  for (const agent of options.agents ?? []) {
+    const endpointLine = agent.endpoint ? `\nendpoint: ${agent.endpoint}` : '';
+    await write(
+      `agents/${agent.name}.md`,
+      `---\nname: ${agent.name}\ndescription: ${agent.description}${endpointLine}\n---\n\n${agent.body ?? 'You are a helpful subagent.'}\n`,
+    );
+  }
+  for (const memory of options.memory ?? []) {
+    const frontmatter = memory.frontmatter ? `---\n${memory.frontmatter}\n---\n\n` : '';
+    await write(`memory/${memory.name}.md`, `${frontmatter}${memory.body}\n`);
+  }
+}
+
+async function writeJsonComponents(
+  write: FileWriter,
+  options: PluginFixtureOptions,
+): Promise<void> {
+  for (const profile of options.profiles ?? []) {
+    await write(`profiles/${profile.name}.json`, JSON.stringify(profile.fragment, null, 2));
+  }
+  for (const rubric of options.rubrics ?? []) {
+    await write(
+      `rubrics/${rubric.name}.json`,
+      JSON.stringify({ name: rubric.name, criteria: rubric.criteria }, null, 2),
+    );
+  }
 }
 
 export async function writePluginFixture(
   dir: string,
   options: PluginFixtureOptions,
 ): Promise<void> {
-  const write = async (relative: string, content: string): Promise<void> => {
+  const write: FileWriter = async (relative, content) => {
     const filePath = path.join(dir, relative);
     await fs.mkdir(path.dirname(filePath), { recursive: true });
     await fs.writeFile(filePath, content);
@@ -40,21 +86,8 @@ export async function writePluginFixture(
       2,
     ),
   );
-  for (const skill of options.skills ?? []) {
-    await write(
-      `skills/${skill.name}/SKILL.md`,
-      `---\nname: ${skill.name}\ndescription: ${skill.description}\n---\n\n${skill.body ?? 'Follow the skill instructions.'}\n`,
-    );
-  }
-  for (const command of options.commands ?? []) {
-    await write(`commands/${command.name}.md`, command.body);
-  }
-  for (const agent of options.agents ?? []) {
-    await write(
-      `agents/${agent.name}.md`,
-      `---\nname: ${agent.name}\ndescription: ${agent.description}\n---\n\n${agent.body ?? 'You are a helpful subagent.'}\n`,
-    );
-  }
+  await writeMarkdownComponents(write, options);
+  await writeJsonComponents(write, options);
   for (const [relative, content] of Object.entries(options.extraFiles ?? {})) {
     await write(relative, content);
   }

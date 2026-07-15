@@ -4,7 +4,7 @@ Declare a local plugin, compile it, and load its skills into Deep Agents.
 
 ```yaml
 # deepagents.plugins.yaml
-apiVersion: deepagents.plugins/v1
+apiVersion: deepagents.plugins/v2
 kind: PluginSet
 metadata:
   name: basic-skills
@@ -13,7 +13,7 @@ plugins:
     source:
       type: local
       path: ./plugins/project-local
-    policyProfile: development
+    trustPolicy: development
 output:
   directory: .deepagents/plugins
 ```

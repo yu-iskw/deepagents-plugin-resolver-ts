@@ -1,0 +1,7 @@
+{
+  "registrationKey": "anthropic",
+  "systemPromptSuffix": "Prefer precise, well-sourced findings.",
+  "toolDescriptionOverrides": {
+    "plugin.example-plugin.scan": "Scan repository files for security issues"
+  }
+}

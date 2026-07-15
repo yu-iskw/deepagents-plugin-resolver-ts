@@ -276,6 +276,55 @@ describe('stream metadata (RFC 20)', () => {
   });
 });
 
+describe('HITL and permission recommendations (RFC 19, 25)', () => {
+  it('derives risk-ranked interrupts and permissions from MCP tools and binaries', async () => {
+    const hitlDir = path.join(tmpRoot, 'hitl-plugin');
+    await write(
+      hitlDir,
+      '.claude-plugin/plugin.json',
+      JSON.stringify({ name: 'hitl-plugin', version: '1.0.0' }),
+    );
+    await write(
+      hitlDir,
+      '.mcp.json',
+      JSON.stringify({
+        mcpServers: {
+          github: { type: 'http', url: 'https://mcp.example.com/github' },
+        },
+      }),
+    );
+    await write(hitlDir, 'bin/deploy.sh', '#!/bin/sh\necho deploy\n');
+    const base = makeInput(hitlDir, 'custom-policy');
+    const input: PluginCompileInput = {
+      ...base,
+      locked: { ...base.locked, id: 'hitl-plugin@direct' },
+      runtimeNamespace: 'hitl-plugin',
+    };
+    const { ir } = await compilePluginSet(
+      [input],
+      options({
+        policy: new PolicyEvaluator({
+          document: {
+            apiVersion: 'deepagents.plugins/v2',
+            kind: 'PluginPolicy',
+            defaults: { binaries: 'allow', mcp: { remoteHttp: 'allow' } },
+            profiles: {},
+          },
+        }),
+      }),
+    );
+    const executable = ir.executableAssets[0];
+    expect(executable).toBeDefined();
+    const hitl = ir.hitlPolicies.find((policy) => policy.toolRef === executable?.id);
+    expect(hitl).toMatchObject({ risk: 'critical', recommendedDecisions: ['approve', 'reject'] });
+    expect(
+      ir.permissions.some(
+        (permission) => permission.toolRef === executable?.id && permission.permission === 'execute',
+      ),
+    ).toBe(true);
+  });
+});
+
 describe('strict mode with v2 statuses', () => {
   it('fails on requires-adapter and runtime-unavailable diagnostics', async () => {
     await expect(

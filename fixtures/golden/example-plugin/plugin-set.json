@@ -1,5 +1,6 @@
 {
   "assets": [],
+  "asyncSubagents": [],
   "commands": [
     {
       "argumentHint": "<path>",
@@ -12,7 +13,20 @@
       "usesArguments": true
     }
   ],
+  "compiler": {
+    "compilerProfile": "claude-plugin-v2026-07",
+    "name": "@deepagents-plugins/compiler",
+    "version": "0.2.0"
+  },
   "diagnostics": [
+    {
+      "code": "DAP4209",
+      "compatibility": "requires-approval",
+      "component": "agents/async-researcher.md",
+      "message": "Capability \"asyncSubagents\" requires review under trust policy \"trusted-internal\".",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "warning"
+    },
     {
       "code": "DAP4002",
       "compatibility": "partial",
@@ -23,20 +37,57 @@
       "sourceLocation": {
         "path": "commands/review.md"
       }
+    },
+    {
+      "code": "DAP4208",
+      "compatibility": "requires-adapter",
+      "component": "rubrics/review-quality.json",
+      "message": "Rubric templates are compiled as data only; activation requires an application-registered rubric adapter.",
+      "pluginId": "example-plugin@example-marketplace",
+      "severity": "info"
     }
   ],
   "executableAssets": [],
-  "generatedBy": {
-    "name": "@deepagents-plugins/compiler",
-    "version": "0.1.0"
-  },
+  "harnessProfiles": [
+    {
+      "compatibility": "translated",
+      "config": {
+        "systemPromptSuffix": "Prefer precise, well-sourced findings.",
+        "toolDescriptionOverrides": {
+          "plugin.example-plugin.scan": "Scan repository files for security issues"
+        }
+      },
+      "id": "example-plugin:profile-anthropic",
+      "pluginId": "example-plugin@example-marketplace",
+      "priority": 0,
+      "registrationKey": "anthropic"
+    }
+  ],
+  "hitlPolicies": [],
   "hooks": [],
+  "interpreterPolicies": [],
   "mcpServers": [],
+  "memorySources": [
+    {
+      "access": "read-only",
+      "compatibility": "translated",
+      "id": "example-plugin:guidelines",
+      "kind": "procedural",
+      "loadMode": "on-demand",
+      "path": "memory/example-plugin/guidelines.md",
+      "pluginId": "example-plugin@example-marketplace",
+      "scope": "agent"
+    }
+  ],
+  "permissions": [],
   "pluginSetDigest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
   "plugins": [
     {
       "capabilities": [
         "commands",
+        "memory.static",
+        "profiles.fragment",
+        "rubrics",
         "skills",
         "subagents"
       ],
@@ -46,7 +97,6 @@
       "id": "example-plugin@example-marketplace",
       "license": "Apache-2.0",
       "name": "example-plugin",
-      "policyProfile": "trusted-internal",
       "runtimeNamespace": "example-plugin",
       "source": {
         "pluginRoot": ".",
@@ -55,6 +105,7 @@
         "type": "github",
         "uri": "https://github.com/example/plugin.git"
       },
+      "trustPolicy": "trusted-internal",
       "version": "1.4.0"
     }
   ],
@@ -62,13 +113,29 @@
     {
       "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
       "pluginId": "example-plugin@example-marketplace",
-      "policyProfile": "trusted-internal",
-      "resolverVersion": "0.1.0",
+      "resolverVersion": "0.2.0",
       "sourceIdentity": "ffffffffffffffffffffffffffffffffffffffff",
-      "sourceType": "github"
+      "sourceType": "github",
+      "trustPolicy": "trusted-internal"
     }
   ],
-  "schemaVersion": "1.0",
+  "rubricTemplates": [
+    {
+      "compatibility": "requires-adapter",
+      "criteria": [
+        "Findings reference concrete files and lines",
+        "No false claims of vulnerabilities"
+      ],
+      "dataPolicy": {
+        "allowExternalGrader": false
+      },
+      "id": "example-plugin:rubric-review-quality",
+      "maxIterations": 3,
+      "name": "review-quality",
+      "pluginId": "example-plugin@example-marketplace"
+    }
+  ],
+  "schemaVersion": "2.0",
   "skills": [
     {
       "compatibility": "native",
@@ -81,18 +148,76 @@
       "skillFile": "skills/example-plugin/security-review/SKILL.md"
     }
   ],
-  "subagents": [
+  "streamMetadata": [
     {
-      "allowedTools": [
-        "Grep",
-        "Read"
+      "componentId": "example-plugin:review",
+      "id": "example-plugin:review:stream",
+      "namespace": [
+        "example-plugin",
+        "command"
       ],
+      "pluginId": "example-plugin@example-marketplace",
+      "provenanceTags": {
+        "componentId": "example-plugin:review",
+        "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "pluginId": "example-plugin@example-marketplace"
+      },
+      "redactionFields": [
+        "tool-call.arguments"
+      ]
+    },
+    {
+      "componentId": "example-plugin:reviewer",
+      "id": "example-plugin:reviewer:stream",
+      "namespace": [
+        "example-plugin",
+        "sync-subagent"
+      ],
+      "pluginId": "example-plugin@example-marketplace",
+      "provenanceTags": {
+        "componentId": "example-plugin:reviewer",
+        "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "pluginId": "example-plugin@example-marketplace"
+      },
+      "redactionFields": [
+        "tool-call.arguments"
+      ]
+    },
+    {
+      "componentId": "example-plugin:security-review",
+      "id": "example-plugin:security-review:stream",
+      "namespace": [
+        "example-plugin",
+        "skill"
+      ],
+      "pluginId": "example-plugin@example-marketplace",
+      "provenanceTags": {
+        "componentId": "example-plugin:security-review",
+        "contentDigest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+        "pluginId": "example-plugin@example-marketplace"
+      },
+      "redactionFields": [
+        "tool-call.arguments"
+      ]
+    }
+  ],
+  "syncSubagents": [
+    {
       "compatibility": "translated",
       "description": "Code review specialist subagent",
       "id": "example-plugin:reviewer",
+      "memoryRefs": [],
+      "middlewareAdapterRefs": [],
       "name": "reviewer",
       "pluginId": "example-plugin@example-marketplace",
-      "systemPrompt": "# Reviewer\n\nYou are a meticulous code reviewer. Report only defects you can substantiate."
+      "skillRefs": [
+        "example-plugin:security-review"
+      ],
+      "systemPrompt": "# Reviewer\n\nYou are a meticulous code reviewer. Report only defects you can substantiate.",
+      "toolRefs": [
+        "Grep",
+        "Read"
+      ]
     }
   ]
 }

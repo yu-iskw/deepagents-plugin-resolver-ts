@@ -28,6 +28,7 @@
   "dependencies": {
     "@deepagents-plugins/compiler": "workspace:*",
     "@deepagents-plugins/core": "workspace:*",
+    "@deepagents-plugins/runtime-deepagents": "workspace:*",
     "@deepagents-plugins/schema": "workspace:*",
     "commander": "catalog:",
     "yaml": "catalog:"

@@ -75,10 +75,15 @@ describe('loadCompiledPluginSet', () => {
     const bundle = await loadCompiledPluginSet({ directory: bundleDir });
     expect(bundle.compiled.skills).toHaveLength(1);
     expect(bundle.manifest.files.length).toBeGreaterThan(2);
-    expect(bundle.requiredCapabilities).toEqual([
-      { capability: 'skills', required: true, componentIds: ['demo:hello'] },
-      { capability: 'streamTransformers', required: false, componentIds: expect.any(Array) },
+    expect(bundle.requiredCapabilities.map((entry) => entry.capability)).toEqual([
+      'skills',
+      'streamTransformers',
     ]);
+    expect(bundle.requiredCapabilities[0]).toEqual({
+      capability: 'skills',
+      required: true,
+      componentIds: ['demo:hello'],
+    });
   });
 
   it('fails closed when a bundle file is tampered with', async () => {

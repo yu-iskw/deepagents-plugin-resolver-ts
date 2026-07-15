@@ -1,21 +1,33 @@
 {
-  "bundleDigest": "sha256:68cb824dec0a260ffdd936c9a4be7f063b6c5739314e59a9327845becdcd4ff3",
+  "bundleDigest": "sha256:5e38dd37b40469f529c8c98ac5a2274b04e2960c1161ce1a10847d86dc43763e",
   "files": [
     {
       "path": "compatibility-report.json",
-      "sha256": "sha256:3b7a28db01462c1e512065e9beffe0b6850d1bb55a4be672145b1f70dd19122c"
+      "sha256": "sha256:c88a2cf4df00aa26591b870ac15598b3961d6e0f02f42f346300cc22fc90f4af"
     },
     {
       "path": "ir/plugin-set.json",
-      "sha256": "sha256:44ae3dbd53bd4abc935cb9e5f394b2ae6c00bbffe4d2fa38dd1434af144a1275"
+      "sha256": "sha256:6cd8567c1d9ff03f68a497c8275cf12d9ce237cea8b571003b4204ecea446594"
+    },
+    {
+      "path": "memory/example-plugin/guidelines.md",
+      "sha256": "sha256:993e847ac551ce396b9cd8e53c3d54c7278f775177be77a95d5e44859f5dfc33"
     },
     {
       "path": "plugins/example-plugin/manifest.json",
       "sha256": "sha256:f28e4cff7d62ba8888b83e30ca746cd84da70ef91ca544b56fc7a919391dfed0"
     },
     {
+      "path": "profiles/harness-profiles.json",
+      "sha256": "sha256:5548f967ebbd036f10221ced4398793763aa8409be35e656752380a021153634"
+    },
+    {
       "path": "provenance.json",
-      "sha256": "sha256:76c36fb5be55bd17862af79723e22b2c7ebc0b9181fc4ea44c24f348aa0b4154"
+      "sha256": "sha256:28e053065284e0d5c43d2274932d7ee02fe26375eb41ed6826e68568d5ee9087"
+    },
+    {
+      "path": "rubrics/example-plugin/review-quality.json",
+      "sha256": "sha256:5f85f42087c430444a885ea00fd3d65707d47140922c3eb57bb77d63330096bb"
     },
     {
       "path": "skills/example-plugin/security-review/references/checklist.md",
@@ -26,5 +38,5 @@
       "sha256": "sha256:3c9eb9c9a9d5313c082111c92dd4a2d6a316f8fd941b68934c96a73ecd63cb4c"
     }
   ],
-  "schemaVersion": 1
+  "schemaVersion": 2
 }

@@ -8,6 +8,10 @@
     },
     "packages/*": {
       "project": ["src/**/*.ts"]
+    },
+    "packages/runtime-deepagents": {
+      "project": ["src/**/*.ts"],
+      "ignoreDependencies": ["deepagents"]
     }
   }
 }

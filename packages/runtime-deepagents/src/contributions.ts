@@ -61,8 +61,8 @@ export interface DeepAgentRuntimeContributions {
   interruptRecommendations: Record<string, { risk: string; decisions: string[] }>;
   permissions: PluginRuntime['permissions'];
   streamTransformers: Array<<T>(event: T, componentId: string) => ProvenanceStreamEvent<T>>;
-  registerHarnessProfiles(): void;
   diagnostics: readonly CompatibilityDiagnosticV2[];
+  registerHarnessProfiles(): void;
 }
 
 /**
