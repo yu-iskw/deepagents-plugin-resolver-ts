@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  BUILD_INFO_NAME,
   BUNDLE_MANIFEST_NAME,
   ExitCodes,
   IR_RELATIVE_PATH,
@@ -58,6 +59,16 @@ export async function loadCompiledPluginSet(
   const manifest = manifestParsed.data;
 
   if (verify) {
+    const listed = new Set(manifest.files.map((entry) => entry.path));
+    for (const onDisk of await listBundleFiles(directory)) {
+      if (!listed.has(onDisk)) {
+        throw new PluginResolutionError(
+          `Bundle contains unmanifested file "${onDisk}"`,
+          ExitCodes.IntegrityMismatch,
+          'The bundle was tampered with or corrupted. Rebuild and redeploy the image.',
+        );
+      }
+    }
     for (const entry of manifest.files) {
       const filePath = path.join(directory, entry.path);
       const resolved = path.resolve(filePath);
@@ -98,4 +109,23 @@ export async function loadCompiledPluginSet(
   }
 
   return { directory, compiled: irParsed.data, manifest };
+}
+
+/** Relative posix paths of on-disk files, excluding meta files the bundler omits from digests. */
+async function listBundleFiles(directory: string): Promise<string[]> {
+  const files: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      const absolute = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(absolute);
+      } else if (entry.isFile()) {
+        const relative = path.relative(directory, absolute).split(path.sep).join('/');
+        if (relative === BUNDLE_MANIFEST_NAME || relative === BUILD_INFO_NAME) continue;
+        files.push(relative);
+      }
+    }
+  };
+  await walk(directory);
+  return files;
 }

@@ -71,10 +71,10 @@ export function createPluginRuntime(options: CreatePluginRuntimeOptions): Plugin
 
   audit({ type: 'bundle-loaded', detail: { bundleDigest: bundle.manifest.bundleDigest } });
 
+  // Exact skill directories only — not the namespace parent — so Deep Agents
+  // cannot discover unmanifested sibling skill folders planted on disk.
   const skillSources = [
-    ...new Set(
-      compiled.skills.map((skill) => path.dirname(path.join(bundle.directory, skill.directory))),
-    ),
+    ...new Set(compiled.skills.map((skill) => path.join(bundle.directory, skill.directory))),
   ].sort();
 
   const commandsById = new Map<string, CompiledCommandV1>();

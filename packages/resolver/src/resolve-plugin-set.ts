@@ -97,6 +97,15 @@ async function readPluginManifest(rootDir: string): Promise<ClaudePluginManifest
   return parsed.data;
 }
 
+export interface ResolvePluginSetOptions {
+  defaultPolicyProfile?: string;
+  /**
+   * Called before resolve/fetch for every marketplace and plugin source.
+   * Must throw (e.g. PluginResolutionError) when the source is denied.
+   */
+  assertSourceAllowed?: (source: PluginSourceSpec, policyProfile: string) => void;
+}
+
 /**
  * Full resolution pipeline (RFC section 11): discover marketplace entries,
  * pin sources, fetch into isolated directories, digest, and produce the
@@ -106,7 +115,7 @@ export async function resolvePluginSet(
   manifest: PluginSetManifest,
   resolvers: PluginSourceResolver[],
   context: ResolveContext,
-  options: { defaultPolicyProfile?: string } = {},
+  options: ResolvePluginSetOptions = {},
 ): Promise<ResolvePluginSetResult> {
   const lockfile: Lockfile = {
     lockfileVersion: 1,
@@ -118,8 +127,10 @@ export async function resolvePluginSet(
   const artifacts: ResolvedPluginArtifact[] = [];
   const marketplaceRoots = new Map<string, string>();
   const marketplaceCatalogs = new Map<string, MarketplaceManifest>();
+  const defaultProfile = options.defaultPolicyProfile ?? 'third-party-restricted';
 
   for (const marketplace of manifest.marketplaces) {
+    options.assertSourceAllowed?.(marketplace.source, defaultProfile);
     const resolver = findResolver(resolvers, marketplace.source);
     const resolved = await resolver.resolve(marketplace.source, context);
     const destination = path.join(context.workDir, 'marketplaces', normalizeName(marketplace.name));
@@ -143,6 +154,7 @@ export async function resolvePluginSet(
   for (const declaration of manifest.plugins) {
     const { pluginName, marketplaceName } = parsePluginId(declaration.id);
     let sourceSpec = declaration.source;
+    const policyProfile = declaration.policyProfile ?? defaultProfile;
 
     if (!sourceSpec) {
       const marketplaceRoot = marketplaceRoots.get(marketplaceName);
@@ -164,6 +176,7 @@ export async function resolvePluginSet(
       sourceSpec = marketplaceEntryToSourceSpec(entry.source, marketplaceRoot);
     }
 
+    options.assertSourceAllowed?.(sourceSpec, policyProfile);
     const resolver = findResolver(resolvers, sourceSpec);
     const resolved = await resolver.resolve(sourceSpec, context);
     const destination = path.join(context.workDir, 'plugins', normalizeName(declaration.id));
@@ -191,8 +204,7 @@ export async function resolvePluginSet(
       id: declaration.id,
       alias: declaration.alias,
       version: pluginManifest.version ?? resolved.version,
-      policyProfile:
-        declaration.policyProfile ?? options.defaultPolicyProfile ?? 'third-party-restricted',
+      policyProfile,
       source: toLockedSource(resolved),
       pluginRoot: resolved.pluginRoot ?? '.',
       contentDigest: digest.contentDigest,

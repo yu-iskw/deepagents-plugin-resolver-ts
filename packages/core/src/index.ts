@@ -33,9 +33,12 @@ import {
 } from '@deepagents-plugins/runtime';
 import {
   LOCKFILE_NAME,
+  ExitCodes,
+  PluginResolutionError,
   sha256DigestOfJson,
   type BundleManifest,
   type PluginSetManifest,
+  type PluginSourceSpec,
 } from '@deepagents-plugins/schema';
 
 export {
@@ -108,7 +111,18 @@ export async function resolvePluginSetFromProject(
     workDir,
   };
   const resolvers = [...builtinResolvers(), ...(options.extraResolvers ?? [])];
-  const resolution = await resolvePluginSet(manifest, resolvers, context);
+  const policy = await buildPolicyEvaluator(options);
+  const resolution = await resolvePluginSet(manifest, resolvers, context, {
+    assertSourceAllowed: (source: PluginSourceSpec, policyProfile: string) => {
+      const decision = policy.evaluateSource(source, policyProfile);
+      if (decision.effect === 'allow') return;
+      throw new PluginResolutionError(
+        decision.reason,
+        ExitCodes.PolicyDenial,
+        decision.remediation,
+      );
+    },
+  });
 
   const existing = await readLockfile(lockfilePath);
   if (options.frozen) {

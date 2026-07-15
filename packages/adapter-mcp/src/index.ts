@@ -1,6 +1,9 @@
+import path from 'node:path';
+
 import {
   qualifiedComponentId,
   qualifiedToolId,
+  normalizeName,
   type CompiledMcpServerV1,
   type McpServerConfig,
 } from '@deepagents-plugins/schema';
@@ -54,13 +57,14 @@ export function translateMcpServer(
   }
 
   if (config.command) {
+    const commandBase = normalizeName(path.basename(config.command));
     return {
       capability: 'mcp.stdio',
       server: {
         id,
         pluginId,
         transport: 'stdio',
-        commandAssetId: `${pluginNamespace}:bin:${serverName}`,
+        commandAssetId: `${pluginNamespace}:bin:${commandBase}`,
         args: config.args ?? [],
         environmentRefs: Object.keys(config.env ?? {}).sort(),
         startupPolicy: 'lazy',

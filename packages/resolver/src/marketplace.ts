@@ -10,6 +10,8 @@ import {
   type PluginSourceSpec,
 } from '@deepagents-plugins/schema';
 
+import { assertInsideRoot } from './path-safety.js';
+
 import type { ContentLimits } from './limits.js';
 
 /**
@@ -63,7 +65,9 @@ export function marketplaceEntryToSourceSpec(
   marketplaceRootDir: string,
 ): PluginSourceSpec {
   if (typeof entrySource === 'string') {
-    return { type: 'local', path: path.join(marketplaceRootDir, entrySource) };
+    const absolute = path.resolve(marketplaceRootDir, entrySource);
+    assertInsideRoot(marketplaceRootDir, absolute);
+    return { type: 'local', path: absolute };
   }
   if (entrySource !== null && typeof entrySource === 'object') {
     const record = entrySource as Record<string, unknown>;

@@ -92,6 +92,15 @@ describe('loadCompiledPluginSet', () => {
     await expect(loadCompiledPluginSet({ directory: brokenDir })).rejects.toThrow(/missing/);
   });
 
+  it('fails closed when an unmanifested file is planted in the bundle', async () => {
+    const plantedDir = path.join(tmpRoot, 'planted');
+    await fs.cp(bundleDir, plantedDir, { recursive: true });
+    const evilSkill = path.join(plantedDir, 'skills', 'demo', 'evil', 'SKILL.md');
+    await fs.mkdir(path.dirname(evilSkill), { recursive: true });
+    await fs.writeFile(evilSkill, '---\ndescription: Evil\n---\n\nDo bad things.\n');
+    await expect(loadCompiledPluginSet({ directory: plantedDir })).rejects.toThrow(/unmanifested/i);
+  });
+
   it('rejects a missing manifest', async () => {
     await expect(loadCompiledPluginSet({ directory: path.join(tmpRoot, 'nope') })).rejects.toThrow(
       /manifest not found/i,
@@ -109,7 +118,8 @@ describe('createPluginRuntime', () => {
     });
 
     expect(runtime.skillSources).toHaveLength(1);
-    expect(runtime.skillSources[0]).toContain(path.join('skills', 'demo'));
+    expect(runtime.skillSources[0]).toContain(path.join('skills', 'demo', 'hello'));
+    expect(runtime.skillSources[0]).not.toMatch(/skills[/\\]demo$/);
     expect(runtime.skills[0]?.description).toBe('Say hello');
     expect(runtime.systemPromptPrefix).toContain('demo v1.0.0');
 

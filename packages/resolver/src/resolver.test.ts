@@ -5,7 +5,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
-import { PluginResolutionError } from '@deepagents-plugins/schema';
+import { ExitCodes, PluginResolutionError } from '@deepagents-plugins/schema';
 import * as tar from 'tar';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
@@ -390,6 +390,36 @@ describe('resolvePluginSet end to end (local + marketplace)', () => {
     expect(() => marketplaceEntryToSourceSpec(42, '/tmp')).toThrow(/Unsupported marketplace/);
     const spec = marketplaceEntryToSourceSpec({ type: 'github', repo: 'acme/x' }, '/tmp');
     expect(spec).toMatchObject({ type: 'github', repository: 'acme/x' });
+  });
+
+  it('rejects marketplace-relative paths that escape the marketplace root', () => {
+    expect(() => marketplaceEntryToSourceSpec('../../outside', '/tmp/marketplace')).toThrow(
+      /escapes extraction root/,
+    );
+  });
+
+  it('skips resolve/fetch when assertSourceAllowed denies a source', async () => {
+    const context = makeContext();
+    const denier = (): never => {
+      throw new PluginResolutionError('source denied by test', ExitCodes.PolicyDenial);
+    };
+    await expect(
+      resolvePluginSet(
+        {
+          schemaVersion: 1,
+          plugins: [
+            {
+              id: 'demo@direct',
+              source: { type: 'local', path: path.join(tmpRoot, 'does-not-matter') },
+            },
+          ],
+          marketplaces: [],
+        },
+        builtinResolvers(),
+        context,
+        { assertSourceAllowed: denier },
+      ),
+    ).rejects.toMatchObject({ exitCode: ExitCodes.PolicyDenial });
   });
 });
 
