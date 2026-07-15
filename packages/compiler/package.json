@@ -1,0 +1,35 @@
+{
+  "name": "@deepagents-plugins/compiler",
+  "version": "0.1.0",
+  "description": "Translation of Claude Code plugin components into the portable IR and deterministic bundles.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/adapter-hooks": "workspace:*",
+    "@deepagents-plugins/adapter-mcp": "workspace:*",
+    "@deepagents-plugins/policy": "workspace:*",
+    "@deepagents-plugins/schema": "workspace:*",
+    "yaml": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1"
+  }
+}
