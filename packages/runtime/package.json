@@ -1,0 +1,35 @@
+{
+  "name": "@deepagents-plugins/runtime",
+  "version": "0.1.0",
+  "description": "Load compiled, immutable plugin bundles into Deep Agents JS applications.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@deepagents-plugins/adapter-hooks": "workspace:*",
+    "@deepagents-plugins/adapter-mcp": "workspace:*",
+    "@deepagents-plugins/schema": "workspace:*"
+  },
+  "devDependencies": {
+    "@deepagents-plugins/compiler": "workspace:*",
+    "@deepagents-plugins/policy": "workspace:*",
+    "@types/node": "^22.20.1"
+  }
+}
