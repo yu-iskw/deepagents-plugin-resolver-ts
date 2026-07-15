@@ -55,7 +55,11 @@ export async function compileInterpreter(context: PluginContext): Promise<void> 
         'Enable runtime.interpreter and register an interpreter adapter, or disable the interpreter feature for this plugin.',
     });
     ir.interpreterPolicies.push(
-      buildPolicy(context, parsed.data, { enabled: false, ptcAllowed: false, compatibility: 'runtime-unavailable' }),
+      buildPolicy(context, parsed.data, {
+        enabled: false,
+        ptcAllowed: false,
+        compatibility: 'runtime-unavailable',
+      }),
     );
     return;
   }
@@ -93,7 +97,11 @@ export async function compileInterpreter(context: PluginContext): Promise<void> 
     message: 'Interpreter policies activate only through a registered interpreter adapter.',
   });
   ir.interpreterPolicies.push(
-    buildPolicy(context, parsed.data, { enabled: true, ptcAllowed, compatibility: 'requires-adapter' }),
+    buildPolicy(context, parsed.data, {
+      enabled: true,
+      ptcAllowed,
+      compatibility: 'requires-adapter',
+    }),
   );
 }
 
@@ -118,9 +126,15 @@ function buildPolicy(
     pluginId: context.input.locked.id,
     enabled: outcome.enabled,
     persistence: data.persistence ?? 'turn',
-    memoryLimitBytes: Math.min(data.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES, DEFAULT_MEMORY_LIMIT_BYTES),
+    memoryLimitBytes: Math.min(
+      data.memoryLimitBytes ?? DEFAULT_MEMORY_LIMIT_BYTES,
+      DEFAULT_MEMORY_LIMIT_BYTES,
+    ),
     timeoutMs: Math.min(data.timeoutMs ?? DEFAULT_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
-    maxResultChars: Math.min(data.maxResultChars ?? DEFAULT_MAX_RESULT_CHARS, DEFAULT_MAX_RESULT_CHARS),
+    maxResultChars: Math.min(
+      data.maxResultChars ?? DEFAULT_MAX_RESULT_CHARS,
+      DEFAULT_MAX_RESULT_CHARS,
+    ),
     ptcTools: outcome.ptcAllowed ? [...(data.ptcTools ?? [])].sort() : [],
     dynamicSubagents: [...(data.dynamicSubagents ?? [])].sort(),
     compatibility: outcome.compatibility,

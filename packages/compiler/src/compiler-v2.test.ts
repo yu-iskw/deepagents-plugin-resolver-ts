@@ -60,7 +60,11 @@ async function writeV2Plugin(root: string): Promise<void> {
   await write(
     root,
     'rubrics/review-quality.json',
-    JSON.stringify({ name: 'review-quality', criteria: ['accurate', 'complete'], maxIterations: 99 }),
+    JSON.stringify({
+      name: 'review-quality',
+      criteria: ['accurate', 'complete'],
+      maxIterations: 99,
+    }),
   );
   await write(
     root,
@@ -335,7 +339,8 @@ describe('HITL and permission recommendations (RFC 19, 25)', () => {
     expect(hitl).toMatchObject({ risk: 'critical', recommendedDecisions: ['approve', 'reject'] });
     expect(
       ir.permissions.some(
-        (permission) => permission.toolRef === executable?.id && permission.permission === 'execute',
+        (permission) =>
+          permission.toolRef === executable?.id && permission.permission === 'execute',
       ),
     ).toBe(true);
   });

@@ -34,10 +34,7 @@ beforeAll(async () => {
     JSON.stringify({ name: 'demo', version: '1.0.0', description: 'Demo plugin' }),
   );
   await write('skills/hello/SKILL.md', '---\ndescription: Say hello\n---\n\nGreet the user.\n');
-  await write(
-    'memory/guidelines.md',
-    '---\nkind: procedural\n---\n\nAlways greet politely.\n',
-  );
+  await write('memory/guidelines.md', '---\nkind: procedural\n---\n\nAlways greet politely.\n');
   await write(
     'profiles/anthropic.json',
     JSON.stringify({ registrationKey: 'anthropic', systemPromptSuffix: 'Be nice.' }),
@@ -134,9 +131,7 @@ describe('createDeepAgentsContributions', () => {
     });
 
     expect(contributions.skillSources).toHaveLength(1);
-    expect(contributions.memorySources[0]).toContain(
-      path.join('memory', 'demo', 'guidelines.md'),
-    );
+    expect(contributions.memorySources[0]).toContain(path.join('memory', 'demo', 'guidelines.md'));
     expect(contributions.syncSubagents).toEqual([
       {
         name: 'helper',
@@ -166,9 +161,9 @@ describe('createDeepAgentsContributions', () => {
 
   it('fails with DAP4210 when a required capability is missing', async () => {
     const bundle = await loadPluginBundle({ directory: bundleDir });
-    await expect(
-      createDeepAgentsContributions({ bundle, autoImport: false }),
-    ).rejects.toThrow(/DAP4210.*skills/);
+    await expect(createDeepAgentsContributions({ bundle, autoImport: false })).rejects.toThrow(
+      /DAP4210.*skills/,
+    );
   });
 
   it('disables optional capabilities with warnings instead of failing', async () => {

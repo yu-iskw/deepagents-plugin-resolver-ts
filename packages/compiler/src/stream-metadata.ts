@@ -10,9 +10,8 @@ export function compileStreamMetadata(context: PluginContext): void {
   const pluginId = input.locked.id;
   const streaming = context.options.runtime?.streaming;
   if (streaming && !streaming.attachPluginProvenance) return;
-  const redactionFields = (streaming?.redactToolArguments ?? true)
-    ? ['tool-call.arguments']
-    : undefined;
+  const redactionFields =
+    (streaming?.redactToolArguments ?? true) ? ['tool-call.arguments'] : undefined;
 
   const groups: Array<[string, ReadonlyArray<{ id: string; pluginId: string }>]> = [
     ['skill', ir.skills],

@@ -58,7 +58,8 @@ export function compileHitl(context: PluginContext): void {
       pluginId,
       toolRef,
       risk,
-      recommendedDecisions: risk === 'critical' ? ['approve', 'reject'] : ['approve', 'edit', 'reject'],
+      recommendedDecisions:
+        risk === 'critical' ? ['approve', 'reject'] : ['approve', 'edit', 'reject'],
     });
   }
 }

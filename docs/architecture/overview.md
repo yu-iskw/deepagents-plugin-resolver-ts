@@ -21,19 +21,19 @@ flowchart LR
 
 ## Packages
 
-| Package              | Responsibility                                                    |
-| -------------------- | ----------------------------------------------------------------- |
-| `schema`             | Config, lockfile, IR v2, diagnostics, capability model            |
-| `resolver`           | Source and marketplace resolution, lockfile v2, safe extraction   |
-| `policy`             | Trust, capability, and approval decisions                         |
-| `compiler`           | Translation orchestration and deterministic bundling              |
-| `runtime`            | Framework-neutral verified loading                                |
-| `runtime-deepagents` | Deep Agents capability detection and runtime contributions        |
-| `adapter-mcp`        | MCP descriptors and authorization-wrapped tools                   |
-| `adapter-hooks`      | Safe lifecycle hook translation                                   |
-| `core`               | Stable facade over the pipeline                                   |
-| `cli`                | User commands                                                     |
-| `testkit`            | Fixtures and conformance                                          |
+| Package              | Responsibility                                                  |
+| -------------------- | --------------------------------------------------------------- |
+| `schema`             | Config, lockfile, IR v2, diagnostics, capability model          |
+| `resolver`           | Source and marketplace resolution, lockfile v2, safe extraction |
+| `policy`             | Trust, capability, and approval decisions                       |
+| `compiler`           | Translation orchestration and deterministic bundling            |
+| `runtime`            | Framework-neutral verified loading                              |
+| `runtime-deepagents` | Deep Agents capability detection and runtime contributions      |
+| `adapter-mcp`        | MCP descriptors and authorization-wrapped tools                 |
+| `adapter-hooks`      | Safe lifecycle hook translation                                 |
+| `core`               | Stable facade over the pipeline                                 |
+| `cli`                | User commands                                                   |
+| `testkit`            | Fixtures and conformance                                        |
 
 ## Dependency direction
 

@@ -193,11 +193,11 @@ Skills use progressive disclosure:
 2. Full `SKILL.md` is read only when relevant.
 3. Supporting references are loaded on demand.
 
-| Mechanism | Purpose | Loading |
-|---|---|---|
-| Skills | On-demand procedures | Progressive |
-| Memory | Persistent knowledge/context | Startup or on-demand |
-| Tools | Programmatic actions | Tool-call path |
+| Mechanism | Purpose                      | Loading              |
+| --------- | ---------------------------- | -------------------- |
+| Skills    | On-demand procedures         | Progressive          |
+| Memory    | Persistent knowledge/context | Startup or on-demand |
+| Tools     | Programmatic actions         | Tool-call path       |
 
 **Implication:** imported skills remain skills; do not flatten them into the system prompt.
 
@@ -360,13 +360,13 @@ The project will not:
 
 ## 6. Evaluated Approaches
 
-| Approach | Fidelity | Security | Reproducibility | Deep Agents fit | Cloud fit | Maintainability | Extensibility | Score |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|
-| Claude subprocess | 95 | 38 | 58 | 45 | 35 | 42 | 50 | 52 |
-| Runtime resolver | 72 | 41 | 35 | 74 | 49 | 56 | 82 | 57 |
-| Skills-only compiler | 46 | 91 | 95 | 58 | 96 | 90 | 52 | 73 |
-| Compatibility compiler | 82 | 92 | 97 | 87 | 96 | 87 | 91 | 90 |
-| Compiler + feature adapters | 91 | 93 | 97 | 96 | 96 | 89 | 97 | **94** |
+| Approach                    | Fidelity | Security | Reproducibility | Deep Agents fit | Cloud fit | Maintainability | Extensibility |  Score |
+| --------------------------- | -------: | -------: | --------------: | --------------: | --------: | --------------: | ------------: | -----: |
+| Claude subprocess           |       95 |       38 |              58 |              45 |        35 |              42 |            50 |     52 |
+| Runtime resolver            |       72 |       41 |              35 |              74 |        49 |              56 |            82 |     57 |
+| Skills-only compiler        |       46 |       91 |              95 |              58 |        96 |              90 |            52 |     73 |
+| Compatibility compiler      |       82 |       92 |              97 |              87 |        96 |              87 |            91 |     90 |
+| Compiler + feature adapters |       91 |       93 |              97 |              96 |        96 |              89 |            97 | **94** |
 
 **Decision:** build a compatibility compiler plus runtime feature adapters.
 
@@ -399,20 +399,20 @@ packages/
 └── testkit/
 ```
 
-| Package | Responsibility |
-|---|---|
-| `schema` | Config, lockfile, IR, diagnostics |
-| `resolver` | Source and marketplace resolution |
-| `inspector` | Static safe inspection |
-| `policy` | Trust, capability, approval decisions |
-| `compiler` | Translation orchestration |
-| `bundle` | Deterministic materialization |
-| `runtime` | Framework-neutral loading |
-| `runtime-deepagents` | Deep Agents composition |
-| Feature adapters | Capability-specific translation/runtime |
-| `cli` | User commands |
-| `core` | Stable facade |
-| `testkit` | Fixtures and conformance |
+| Package              | Responsibility                          |
+| -------------------- | --------------------------------------- |
+| `schema`             | Config, lockfile, IR, diagnostics       |
+| `resolver`           | Source and marketplace resolution       |
+| `inspector`          | Static safe inspection                  |
+| `policy`             | Trust, capability, approval decisions   |
+| `compiler`           | Translation orchestration               |
+| `bundle`             | Deterministic materialization           |
+| `runtime`            | Framework-neutral loading               |
+| `runtime-deepagents` | Deep Agents composition                 |
+| Feature adapters     | Capability-specific translation/runtime |
+| `cli`                | User commands                           |
+| `core`               | Stable facade                           |
+| `testkit`            | Fixtures and conformance                |
 
 ```mermaid
 flowchart TD
@@ -483,7 +483,7 @@ plugins:
 runtime:
   compatibilityMode: strict
   deepAgents:
-    requiredVersion: ">=0.5.0"
+    requiredVersion: '>=0.5.0'
     featurePolicy:
       beta: explicit
       preview: explicit
@@ -506,7 +506,7 @@ runtime:
     redactToolArguments: true
 
 output:
-  directory: ".deepagents/plugins"
+  directory: '.deepagents/plugins'
   emitSbom: true
   emitSarif: true
   emitConformanceTests: true
@@ -535,12 +535,7 @@ Use `trustPolicy`, not `policyProfile`, to avoid confusing security policy with 
       },
       "contentDigest": "sha256:...",
       "manifestDigest": "sha256:...",
-      "detectedCapabilities": [
-        "skills",
-        "commands",
-        "sync-subagents",
-        "mcp"
-      ],
+      "detectedCapabilities": ["skills", "commands", "sync-subagents", "mcp"],
       "compilerProfile": "claude-plugin-v2026-07",
       "approvalDigest": "sha256:..."
     }
@@ -563,7 +558,7 @@ Rules:
 
 ```ts
 export interface CompiledPluginSetV2 {
-  schemaVersion: "2.0";
+  schemaVersion: '2.0';
   compiler: CompilerIdentity;
   pluginSetDigest: string;
 
@@ -590,14 +585,14 @@ export interface CompiledPluginSetV2 {
 
 ```ts
 export type CompatibilityStatus =
-  | "native"
-  | "translated"
-  | "partial"
-  | "unsupported"
-  | "blocked-by-policy"
-  | "runtime-unavailable"
-  | "requires-adapter"
-  | "requires-approval";
+  | 'native'
+  | 'translated'
+  | 'partial'
+  | 'unsupported'
+  | 'blocked-by-policy'
+  | 'runtime-unavailable'
+  | 'requires-adapter'
+  | 'requires-approval';
 ```
 
 `runtime-unavailable` prevents Python-documented capabilities from being falsely represented as JS-supported.
@@ -708,27 +703,23 @@ export interface CompiledMemorySource {
   id: string;
   pluginId: string;
   path: string;
-  kind:
-    | "static-instructions"
-    | "procedural"
-    | "episodic-template"
-    | "organization-template";
-  loadMode: "startup" | "on-demand";
-  scope: "agent" | "user" | "tenant" | "organization";
-  access: "read-only" | "read-write";
+  kind: 'static-instructions' | 'procedural' | 'episodic-template' | 'organization-template';
+  loadMode: 'startup' | 'on-demand';
+  scope: 'agent' | 'user' | 'tenant' | 'organization';
+  access: 'read-only' | 'read-write';
   writableLocationRef?: string;
 }
 ```
 
 Default policy:
 
-| Source | Scope | Access |
-|---|---|---|
-| Third-party plugin memory | Agent | Read-only |
-| Internal static memory | Agent/tenant | Read-only |
-| User memory | User | Application-controlled |
-| Organization memory | Organization | Application-controlled |
-| Plugin-requested writable memory | None | Deny |
+| Source                           | Scope        | Access                 |
+| -------------------------------- | ------------ | ---------------------- |
+| Third-party plugin memory        | Agent        | Read-only              |
+| Internal static memory           | Agent/tenant | Read-only              |
+| User memory                      | User         | Application-controlled |
+| Organization memory              | Organization | Application-controlled |
+| Plugin-requested writable memory | None         | Deny                   |
 
 Plugins may ship schemas or consolidation procedures, but persistent stores remain application-owned.
 
@@ -760,17 +751,17 @@ Arbitrary middleware cannot be serialized; profiles reference application-instal
 
 Governance:
 
-| Field | Third-party default |
-|---|---|
-| Base prompt replacement | Deny |
-| Prompt suffix | Review |
-| Override plugin-owned tool description | Allow |
-| Override application tool description | Deny |
-| Exclude plugin-owned tool | Allow |
-| Exclude application tool | Deny |
-| Exclude middleware | Deny |
-| Add middleware | Registered adapter |
-| Change GP subagent | Deny |
+| Field                                  | Third-party default |
+| -------------------------------------- | ------------------- |
+| Base prompt replacement                | Deny                |
+| Prompt suffix                          | Review              |
+| Override plugin-owned tool description | Allow               |
+| Override application tool description  | Deny                |
+| Exclude plugin-owned tool              | Allow               |
+| Exclude application tool               | Deny                |
+| Exclude middleware                     | Deny                |
+| Add middleware                         | Registered adapter  |
+| Change GP subagent                     | Deny                |
 
 Merge order:
 
@@ -841,7 +832,7 @@ sequenceDiagram
 export interface CompiledInterpreterPolicy {
   pluginId: string;
   enabled: boolean;
-  persistence: "thread" | "turn" | "call";
+  persistence: 'thread' | 'turn' | 'call';
   memoryLimitBytes: number;
   timeoutMs: number;
   maxResultChars: number;
@@ -894,10 +885,10 @@ export interface CompiledAsyncSubagent {
   name: string;
   description: string;
   graphId: string;
-  transport: "co-deployed" | "http";
+  transport: 'co-deployed' | 'http';
   endpointRef?: string;
   authProfile?: string;
-  allowedOperations: Array<"launch" | "status" | "update" | "cancel">;
+  allowedOperations: Array<'launch' | 'status' | 'update' | 'cancel'>;
   dataClassification?: string;
 }
 ```
@@ -941,14 +932,14 @@ Policy:
 export interface CompiledMcpServer {
   id: string;
   pluginId: string;
-  transport: "streamable-http" | "sse" | "stdio";
+  transport: 'streamable-http' | 'sse' | 'stdio';
   endpointRef?: string;
   executableAssetRef?: string;
   args?: string[];
   environmentRefs?: string[];
   authProfile?: string;
   toolAllowlist?: string[];
-  startup: "lazy" | "eager";
+  startup: 'lazy' | 'eager';
 }
 ```
 
@@ -969,8 +960,8 @@ Every tool is wrapped with authorization, tenant context, timeout, limits, telem
 export interface CompiledHitlRecommendation {
   pluginId: string;
   toolRef: string;
-  risk: "low" | "medium" | "high" | "critical";
-  recommendedDecisions: Array<"approve" | "edit" | "reject" | "respond">;
+  risk: 'low' | 'medium' | 'high' | 'critical';
+  recommendedDecisions: Array<'approve' | 'edit' | 'reject' | 'respond'>;
   conditionRef?: string;
 }
 ```
@@ -994,28 +985,28 @@ HITL requires a checkpointer, stable thread IDs, durable resumption, decision au
 
 ```ts
 export interface PluginRuntimeEvent<T = unknown> {
-  schemaVersion: "1.0";
+  schemaVersion: '1.0';
   timestamp: string;
   runId: string;
   threadId?: string;
   namespace: string[];
 
   source: {
-    agent: "main" | "sync-subagent" | "async-subagent";
+    agent: 'main' | 'sync-subagent' | 'async-subagent';
     agentName?: string;
     pluginId?: string;
     componentId?: string;
   };
 
   type:
-    | "lifecycle"
-    | "message"
-    | "token"
-    | "tool-call"
-    | "tool-result"
-    | "interrupt"
-    | "rubric"
-    | "custom";
+    | 'lifecycle'
+    | 'message'
+    | 'token'
+    | 'tool-call'
+    | 'tool-result'
+    | 'interrupt'
+    | 'rubric'
+    | 'custom';
 
   data: T;
   redaction?: {
@@ -1086,33 +1077,33 @@ Commands are explicit application entry points exposed through routes, slash com
 
 ```ts
 export type PortableHookEvent =
-  | "beforeAgentInvoke"
-  | "afterAgentInvoke"
-  | "beforeToolCall"
-  | "afterToolCall"
-  | "onToolError"
-  | "beforeSubagentInvoke"
-  | "afterSubagentInvoke"
-  | "onInterrupt"
-  | "onRubricEvaluation";
+  | 'beforeAgentInvoke'
+  | 'afterAgentInvoke'
+  | 'beforeToolCall'
+  | 'afterToolCall'
+  | 'onToolError'
+  | 'beforeSubagentInvoke'
+  | 'afterSubagentInvoke'
+  | 'onInterrupt'
+  | 'onRubricEvaluation';
 ```
 
 ```ts
 export type CompiledHookAction =
-  | { type: "middleware-adapter"; adapterRef: string; config: unknown }
-  | { type: "webhook"; endpointRef: string }
-  | { type: "sandbox-command"; assetRef: string; args: string[] }
-  | { type: "unsupported"; reason: string };
+  | { type: 'middleware-adapter'; adapterRef: string; config: unknown }
+  | { type: 'webhook'; endpointRef: string }
+  | { type: 'sandbox-command'; assetRef: string; args: string[] }
+  | { type: 'unsupported'; reason: string };
 ```
 
-| Action | Default |
-|---|---|
-| Registered pure middleware | Allow |
-| Declarative policy middleware | Allow |
-| Webhook | Review |
-| Sandbox command | Deny |
-| Shell string | Deny |
-| Imported JS module | Deny |
+| Action                        | Default |
+| ----------------------------- | ------- |
+| Registered pure middleware    | Allow   |
+| Declarative policy middleware | Allow   |
+| Webhook                       | Review  |
+| Sandbox command               | Deny    |
+| Shell string                  | Deny    |
+| Imported JS module            | Deny    |
 
 ---
 
@@ -1157,9 +1148,9 @@ Governance:
 ```ts
 export interface ContextContribution {
   id: string;
-  source: "skill" | "memory" | "profile" | "tool" | "subagent" | "rubric";
-  loadMode: "startup" | "on-demand" | "runtime";
-  scope: "main-agent" | "subagent" | "invocation" | "thread" | "user" | "tenant";
+  source: 'skill' | 'memory' | 'profile' | 'tool' | 'subagent' | 'rubric';
+  loadMode: 'startup' | 'on-demand' | 'runtime';
+  scope: 'main-agent' | 'subagent' | 'invocation' | 'thread' | 'user' | 'tenant';
   maxChars?: number;
   priority?: number;
   sensitive?: boolean;
@@ -1256,14 +1247,14 @@ ENV DEEPAGENTS_PLUGIN_DIR=/app/.deepagents/plugins
 CMD ["dist/server.js"]
 ```
 
-| Work | Runtime |
-|---|---|
-| Normal sync request | Cloud Run service |
-| Long async subagent | Agent Protocol deployment |
-| Memory consolidation | Cloud Run Job |
-| Untrusted sandbox | Isolated worker/container |
-| Durable monitor | Worker |
-| Remote MCP | Separate service |
+| Work                 | Runtime                   |
+| -------------------- | ------------------------- |
+| Normal sync request  | Cloud Run service         |
+| Long async subagent  | Agent Protocol deployment |
+| Memory consolidation | Cloud Run Job             |
+| Untrusted sandbox    | Isolated worker/container |
+| Durable monitor      | Worker                    |
+| Remote MCP           | Separate service          |
 
 Do not load arbitrary tenant code into a shared Node.js process.
 
@@ -1333,21 +1324,21 @@ flowchart TD
     T6["Cross-tenant memory"] -.-> D
 ```
 
-| Threat | Mitigation |
-|---|---|
-| Mutable source | Immutable pin |
-| Archive traversal | Safe extraction |
-| Hidden executable | Capability detection |
-| Prompt injection | Treat content as untrusted |
-| Profile override | Field governance |
-| Tool escalation | Authorization wrapper |
-| PTC bypass | Separate PTC policy |
-| Async exfiltration | Endpoint/data policy |
-| Memory poisoning | Scope/write control |
-| Rubric loop abuse | Iteration cap |
-| Stream leakage | Redaction/provenance |
-| Cross-tenant context | Tenant-bound stores |
-| Interpreter escape | Worker/container isolation |
+| Threat               | Mitigation                 |
+| -------------------- | -------------------------- |
+| Mutable source       | Immutable pin              |
+| Archive traversal    | Safe extraction            |
+| Hidden executable    | Capability detection       |
+| Prompt injection     | Treat content as untrusted |
+| Profile override     | Field governance           |
+| Tool escalation      | Authorization wrapper      |
+| PTC bypass           | Separate PTC policy        |
+| Async exfiltration   | Endpoint/data policy       |
+| Memory poisoning     | Scope/write control        |
+| Rubric loop abuse    | Iteration cap              |
+| Stream leakage       | Redaction/provenance       |
+| Cross-tenant context | Tenant-bound stores        |
+| Interpreter escape   | Worker/container isolation |
 
 ---
 
@@ -1392,11 +1383,11 @@ Flags:
 ## 30. Runtime API
 
 ```ts
-import { createDeepAgent } from "deepagents";
+import { createDeepAgent } from 'deepagents';
 import {
   loadPluginBundle,
   createDeepAgentsContributions,
-} from "@deepagents-plugins/runtime-deepagents";
+} from '@deepagents-plugins/runtime-deepagents';
 
 const bundle = await loadPluginBundle({
   directory: process.env.DEEPAGENTS_PLUGIN_DIR!,
@@ -1419,22 +1410,10 @@ const agent = createDeepAgent({
   tools: [...applicationTools, ...contributions.tools],
   skills: contributions.skillSources,
   memory: contributions.memorySources,
-  subagents: [
-    ...contributions.syncSubagents,
-    ...contributions.asyncSubagents,
-  ],
-  middleware: [
-    ...applicationSecurityMiddleware,
-    ...contributions.middleware,
-  ],
-  interruptOn: mergeInterruptPolicies(
-    mandatoryInterrupts,
-    contributions.interruptRecommendations,
-  ),
-  permissions: mergePermissions(
-    applicationPermissions,
-    contributions.permissions,
-  ),
+  subagents: [...contributions.syncSubagents, ...contributions.asyncSubagents],
+  middleware: [...applicationSecurityMiddleware, ...contributions.middleware],
+  interruptOn: mergeInterruptPolicies(mandatoryInterrupts, contributions.interruptRecommendations),
+  permissions: mergePermissions(applicationPermissions, contributions.permissions),
   streamTransformers: contributions.streamTransformers,
   checkpointer,
   store,
@@ -1665,43 +1644,43 @@ It will not execute plugin code implicitly, download in production, trust market
 
 ## Appendix A: Component Compatibility Matrix
 
-| Claude component | Deep Agents target | Fidelity | Default |
-|---|---|---:|---|
-| Skill | Skill | High | Allow |
-| Command | Explicit command | Medium | Allow |
-| Agent | Sync subagent | Medium-high | Review |
-| Agent + endpoint | Async subagent | Medium | Review |
-| MCP HTTP | Wrapped tools | Medium-high | Review |
-| MCP stdio | Sandboxed MCP | Medium | Deny |
-| Middleware hook | Registered adapter | Medium | Review |
-| Command hook | Sandbox command | Low | Deny |
-| Settings | Advisory/profile fragment | Low | Review |
-| LSP | Optional adapter | Low | Deny |
-| Monitor | External worker | Low | Unsupported initially |
-| Binary | Sandboxed asset | Variable | Deny |
-| Rubric | Rubric template | Medium | Templates only |
-| Memory | Read-only memory source | Medium-high | Review |
-| Interpreter module | Registered adapter | Variable | Deny |
+| Claude component   | Deep Agents target        |    Fidelity | Default               |
+| ------------------ | ------------------------- | ----------: | --------------------- |
+| Skill              | Skill                     |        High | Allow                 |
+| Command            | Explicit command          |      Medium | Allow                 |
+| Agent              | Sync subagent             | Medium-high | Review                |
+| Agent + endpoint   | Async subagent            |      Medium | Review                |
+| MCP HTTP           | Wrapped tools             | Medium-high | Review                |
+| MCP stdio          | Sandboxed MCP             |      Medium | Deny                  |
+| Middleware hook    | Registered adapter        |      Medium | Review                |
+| Command hook       | Sandbox command           |         Low | Deny                  |
+| Settings           | Advisory/profile fragment |         Low | Review                |
+| LSP                | Optional adapter          |         Low | Deny                  |
+| Monitor            | External worker           |         Low | Unsupported initially |
+| Binary             | Sandboxed asset           |    Variable | Deny                  |
+| Rubric             | Rubric template           |      Medium | Templates only        |
+| Memory             | Read-only memory source   | Medium-high | Review                |
+| Interpreter module | Registered adapter        |    Variable | Deny                  |
 
 ---
 
 ## Appendix B: Feature Maturity Matrix
 
-| Feature | Python docs status | JS strategy |
-|---|---|---|
-| Skills | Stable | Native |
-| Memory | Stable | Native/capability detect |
-| Context engineering | Conceptual | Runtime composition |
-| Profiles | Beta | Native in current JS |
-| Sync subagents | Stable | Native |
-| Async subagents | Preview | Capability detect |
-| HITL | Stable | Native |
-| Streaming | Stable | LangGraph-native |
-| Event subagent projections | Beta | Adapter/detect |
-| Interpreters | Beta | Registered adapter |
-| Dynamic subagents | Beta | Interpreter adapter |
-| Rubrics | Beta | Registered adapter |
-| PTC | Beta | Separate policy boundary |
+| Feature                    | Python docs status | JS strategy              |
+| -------------------------- | ------------------ | ------------------------ |
+| Skills                     | Stable             | Native                   |
+| Memory                     | Stable             | Native/capability detect |
+| Context engineering        | Conceptual         | Runtime composition      |
+| Profiles                   | Beta               | Native in current JS     |
+| Sync subagents             | Stable             | Native                   |
+| Async subagents            | Preview            | Capability detect        |
+| HITL                       | Stable             | Native                   |
+| Streaming                  | Stable             | LangGraph-native         |
+| Event subagent projections | Beta               | Adapter/detect           |
+| Interpreters               | Beta               | Registered adapter       |
+| Dynamic subagents          | Beta               | Interpreter adapter      |
+| Rubrics                    | Beta               | Registered adapter       |
+| PTC                        | Beta               | Separate policy boundary |
 
 ---
 
