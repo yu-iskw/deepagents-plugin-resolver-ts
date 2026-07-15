@@ -11,8 +11,13 @@ import {
   parsePluginId,
   qualifiedToolId,
 } from './ids.js';
+import {
+  capabilityAvailable,
+  emptyDeepAgentsCapabilities,
+  requiredCapabilitiesFromIr,
+} from './capabilities.js';
 import { compiledPluginSetSchema, IR_SCHEMA_VERSION } from './ir.js';
-import { lockfileSchema } from './lockfile.js';
+import { COMPILER_PROFILE, lockfileSchema } from './lockfile.js';
 import { pluginSetManifestSchema } from './manifest.js';
 import { pluginPolicyDocumentSchema } from './policy.js';
 
@@ -69,70 +74,278 @@ describe('ids', () => {
 });
 
 describe('manifest schema', () => {
-  it('parses a minimal manifest with defaults', () => {
+  it('parses a minimal v2 manifest with defaults', () => {
     const parsed = pluginSetManifestSchema.parse({
-      apiVersion: 'deepagents.plugins/v1',
+      apiVersion: 'deepagents.plugins/v2',
       kind: 'PluginSet',
       metadata: { name: 'test' },
       plugins: [{ id: 'p@direct', source: { type: 'local', path: './p' } }],
     });
     expect(parsed.output.directory).toBe('.deepagents/plugins');
     expect(parsed.collisionPolicy.tools).toBe('error');
+    expect(parsed.runtime.compatibilityMode).toBe('standard');
+    expect(parsed.runtime.interpreter.enabled).toBe(false);
+    expect(parsed.runtime.interpreter.ptcDefault).toBe('deny');
+    expect(parsed.runtime.asyncSubagents.allowedHosts).toEqual([]);
+    expect(parsed.runtime.streaming.attachPluginProvenance).toBe(true);
   });
 
-  it('rejects unknown api versions', () => {
+  it('parses per-plugin trustPolicy and feature toggles', () => {
+    const parsed = pluginSetManifestSchema.parse({
+      apiVersion: 'deepagents.plugins/v2',
+      kind: 'PluginSet',
+      metadata: { name: 'test' },
+      plugins: [
+        {
+          id: 'p@direct',
+          source: { type: 'local', path: './p' },
+          trustPolicy: 'third-party-restricted',
+          features: { memory: 'static-only', rubrics: 'templates-only', hooks: 'disabled' },
+        },
+      ],
+    });
+    expect(parsed.plugins[0]?.trustPolicy).toBe('third-party-restricted');
+    expect(parsed.plugins[0]?.features?.memory).toBe('static-only');
+  });
+
+  it('rejects v1 and unknown api versions', () => {
+    for (const apiVersion of ['deepagents.plugins/v1', 'other/v1']) {
+      expect(() =>
+        pluginSetManifestSchema.parse({
+          apiVersion,
+          kind: 'PluginSet',
+          metadata: { name: 'x' },
+          plugins: [{ id: 'a' }],
+        }),
+      ).toThrow();
+    }
+  });
+});
+
+describe('lockfile and policy schemas', () => {
+  it('parses a v2 lockfile and rejects v1', () => {
+    const lock = lockfileSchema.parse({
+      lockfileVersion: 2,
+      resolverVersion: '0.2.0',
+      pluginSetDigest: 'sha256:abc',
+      marketplaces: [],
+      plugins: [
+        {
+          id: 'p@direct',
+          trustPolicy: 'default',
+          source: { type: 'local', uri: './p' },
+          pluginRoot: '.',
+          contentDigest: 'sha256:abc',
+          manifestDigest: 'sha256:def',
+          detectedCapabilities: ['skills', 'commands'],
+          compilerProfile: COMPILER_PROFILE,
+          files: {},
+        },
+      ],
+    });
+    expect(lock.lockfileVersion).toBe(2);
+    expect(lock.plugins[0]?.detectedCapabilities).toContain('skills');
     expect(() =>
-      pluginSetManifestSchema.parse({
-        apiVersion: 'other/v1',
-        kind: 'PluginSet',
-        metadata: { name: 'x' },
-        plugins: [{ id: 'a' }],
+      lockfileSchema.parse({
+        lockfileVersion: 1,
+        resolverVersion: '0.1.0',
+        pluginSetDigest: 'sha256:abc',
+        marketplaces: [],
+        plugins: [],
+      }),
+    ).toThrow();
+  });
+
+  it('parses a v2 policy document with new capability rules', () => {
+    const policy = pluginPolicyDocumentSchema.parse({
+      apiVersion: 'deepagents.plugins/v2',
+      kind: 'PluginPolicy',
+      defaults: {
+        skills: 'allow',
+        mcp: { stdio: 'deny' },
+        memory: { static: 'allow', writable: 'deny' },
+        profiles: { basePromptReplacement: 'deny', promptSuffix: 'review' },
+        interpreter: 'deny',
+        ptc: 'deny',
+        rubrics: 'review',
+        asyncSubagents: 'deny',
+      },
+      profiles: { internal: { subagents: 'allow' } },
+    });
+    expect(policy.defaults.mcp?.stdio).toBe('deny');
+    expect(policy.defaults.memory?.writable).toBe('deny');
+    expect(policy.defaults.profiles?.basePromptReplacement).toBe('deny');
+  });
+});
+
+const EMPTY_IR = {
+  schemaVersion: IR_SCHEMA_VERSION,
+  compiler: { name: 'test', version: '0.0.0', compilerProfile: COMPILER_PROFILE },
+  pluginSetDigest: 'sha256:abc',
+  plugins: [],
+  skills: [],
+  memorySources: [],
+  commands: [],
+  syncSubagents: [],
+  asyncSubagents: [],
+  mcpServers: [],
+  hooks: [],
+  harnessProfiles: [],
+  hitlPolicies: [],
+  permissions: [],
+  interpreterPolicies: [],
+  rubricTemplates: [],
+  streamMetadata: [],
+  assets: [],
+  executableAssets: [],
+  diagnostics: [],
+  provenance: [],
+};
+
+describe('IR schema', () => {
+  it('validates an empty compiled plugin set v2', () => {
+    const set = compiledPluginSetSchema.parse(EMPTY_IR);
+    expect(set.schemaVersion).toBe('2.0');
+    expect(set.compiler.compilerProfile).toBe(COMPILER_PROFILE);
+  });
+
+  it('validates v2 component schemas', () => {
+    const set = compiledPluginSetSchema.parse({
+      ...EMPTY_IR,
+      memorySources: [
+        {
+          id: 'p/mem',
+          pluginId: 'p@direct',
+          path: 'memory/p/guidelines.md',
+          kind: 'static-instructions',
+          loadMode: 'on-demand',
+          scope: 'agent',
+          access: 'read-only',
+          compatibility: 'translated',
+        },
+      ],
+      harnessProfiles: [
+        {
+          id: 'p/profile',
+          pluginId: 'p@direct',
+          registrationKey: 'anthropic',
+          priority: 0,
+          config: { systemPromptSuffix: 'Be careful.' },
+          compatibility: 'translated',
+        },
+      ],
+      hitlPolicies: [
+        {
+          id: 'p/hitl',
+          pluginId: 'p@direct',
+          toolRef: 'plugin.p.write',
+          risk: 'high',
+          recommendedDecisions: ['approve', 'reject'],
+        },
+      ],
+      interpreterPolicies: [
+        {
+          id: 'p/interp',
+          pluginId: 'p@direct',
+          enabled: false,
+          persistence: 'turn',
+          memoryLimitBytes: 1_000_000,
+          timeoutMs: 5000,
+          maxResultChars: 20_000,
+          ptcTools: [],
+          dynamicSubagents: [],
+          compatibility: 'requires-adapter',
+        },
+      ],
+      rubricTemplates: [
+        {
+          id: 'p/rubric',
+          pluginId: 'p@direct',
+          name: 'review-quality',
+          criteria: ['is accurate'],
+          compatibility: 'requires-adapter',
+        },
+      ],
+      streamMetadata: [
+        {
+          id: 'p/stream',
+          pluginId: 'p@direct',
+          componentId: 'p/skill',
+          namespace: ['p', 'skill'],
+          provenanceTags: { pluginId: 'p@direct' },
+          redactionFields: ['toolArguments'],
+        },
+      ],
+    });
+    expect(set.memorySources[0]?.access).toBe('read-only');
+    expect(set.interpreterPolicies[0]?.compatibility).toBe('requires-adapter');
+  });
+
+  it('rejects v1-shaped plugin sets', () => {
+    expect(() =>
+      compiledPluginSetSchema.parse({
+        schemaVersion: '1.0',
+        generatedBy: { name: 'test', version: '0.0.0' },
+        pluginSetDigest: 'sha256:abc',
+        plugins: [],
+        skills: [],
+        commands: [],
+        subagents: [],
+        mcpServers: [],
+        hooks: [],
+        assets: [],
+        executableAssets: [],
+        diagnostics: [],
+        provenance: [],
       }),
     ).toThrow();
   });
 });
 
-describe('lockfile and policy schemas', () => {
-  it('parses a lockfile', () => {
-    const lock = lockfileSchema.parse({
-      lockfileVersion: 1,
-      resolverVersion: '0.1.0',
-      pluginSetDigest: 'sha256:abc',
-      marketplaces: [],
-      plugins: [],
+describe('capabilities', () => {
+  it('derives requirements from IR arrays', () => {
+    const ir = compiledPluginSetSchema.parse({
+      ...EMPTY_IR,
+      skills: [
+        {
+          id: 'p/skill',
+          pluginId: 'p@direct',
+          originalName: 'skill',
+          runtimeName: 'p-skill',
+          description: 'd',
+          directory: 'skills/p/skill',
+          skillFile: 'skills/p/skill/SKILL.md',
+          compatibility: 'native',
+        },
+      ],
+      rubricTemplates: [
+        {
+          id: 'p/rubric',
+          pluginId: 'p@direct',
+          name: 'r',
+          criteria: ['c'],
+          compatibility: 'requires-adapter',
+        },
+      ],
     });
-    expect(lock.lockfileVersion).toBe(1);
+    const requirements = requiredCapabilitiesFromIr(ir);
+    expect(requirements).toEqual([
+      { capability: 'rubric', required: false, componentIds: ['p/rubric'] },
+      { capability: 'skills', required: true, componentIds: ['p/skill'] },
+    ]);
   });
 
-  it('parses a policy document', () => {
-    const policy = pluginPolicyDocumentSchema.parse({
-      apiVersion: 'deepagents.plugins/v1',
-      kind: 'PluginPolicy',
-      defaults: { skills: 'allow', mcp: { stdio: 'deny' } },
-      profiles: { internal: { subagents: 'allow' } },
-    });
-    expect(policy.defaults.mcp?.stdio).toBe('deny');
-  });
-});
-
-describe('IR schema', () => {
-  it('validates an empty compiled plugin set', () => {
-    const set = compiledPluginSetSchema.parse({
-      schemaVersion: IR_SCHEMA_VERSION,
-      generatedBy: { name: 'test', version: '0.0.0' },
-      pluginSetDigest: 'sha256:abc',
-      plugins: [],
-      skills: [],
-      commands: [],
-      subagents: [],
-      mcpServers: [],
-      hooks: [],
-      assets: [],
-      executableAssets: [],
-      diagnostics: [],
-      provenance: [],
-    });
-    expect(set.schemaVersion).toBe('1.0');
+  it('checks availability against a capability map', () => {
+    const none = emptyDeepAgentsCapabilities();
+    expect(capabilityAvailable(none, 'skills')).toBe(false);
+    expect(capabilityAvailable({ ...none, skills: true }, 'skills')).toBe(true);
+    expect(
+      capabilityAvailable(
+        { ...none, interpreter: { available: true, ptc: false, dynamicSubagents: false } },
+        'interpreter',
+      ),
+    ).toBe(true);
+    expect(capabilityAvailable(none, 'unknown-capability')).toBe(false);
   });
 });
 

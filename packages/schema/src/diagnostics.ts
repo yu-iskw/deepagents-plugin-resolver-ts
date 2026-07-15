@@ -6,6 +6,9 @@ export const compatibilityLevelSchema = z.enum([
   'partial',
   'unsupported',
   'blocked-by-policy',
+  'runtime-unavailable',
+  'requires-adapter',
+  'requires-approval',
 ]);
 export type CompatibilityLevel = z.infer<typeof compatibilityLevelSchema>;
 
@@ -28,7 +31,7 @@ export const compatibilityDiagnosticSchema = z.object({
   remediation: z.string().optional(),
   sourceLocation: sourceLocationSchema.optional(),
 });
-export type CompatibilityDiagnosticV1 = z.infer<typeof compatibilityDiagnosticSchema>;
+export type CompatibilityDiagnosticV2 = z.infer<typeof compatibilityDiagnosticSchema>;
 
 /** Stable diagnostic codes. Ranges: 1xxx config, 2xxx policy, 3xxx validation, 4xxx compatibility, 5xxx integrity. */
 export const DiagnosticCodes = {
@@ -39,6 +42,8 @@ export const DiagnosticCodes = {
   PolicyDenied: 'DAP2304',
   PolicyReviewRequired: 'DAP2305',
   SourceTrustViolation: 'DAP2306',
+  MemoryWriteDenied: 'DAP2307',
+  ProfileFieldDenied: 'DAP2308',
   StructureInvalid: 'DAP3001',
   PathUnsafe: 'DAP3002',
   LimitExceeded: 'DAP3003',
@@ -48,15 +53,19 @@ export const DiagnosticCodes = {
   ComponentPartial: 'DAP4002',
   ClaudeVariableUsed: 'DAP4003',
   UnknownComponent: 'DAP4004',
+  RuntimeUnavailable: 'DAP4207',
+  RequiresAdapter: 'DAP4208',
+  RequiresApproval: 'DAP4209',
+  CapabilityMismatch: 'DAP4210',
   IntegrityMismatch: 'DAP5001',
 } as const;
 export type DiagnosticCode = (typeof DiagnosticCodes)[keyof typeof DiagnosticCodes];
 
 /** Collects diagnostics in deterministic order and tracks the worst severity. */
 export class DiagnosticCollector {
-  private readonly items: CompatibilityDiagnosticV1[] = [];
+  private readonly items: CompatibilityDiagnosticV2[] = [];
 
-  get all(): readonly CompatibilityDiagnosticV1[] {
+  get all(): readonly CompatibilityDiagnosticV2[] {
     return [...this.items].sort(
       (a, b) =>
         a.pluginId.localeCompare(b.pluginId) ||
@@ -66,7 +75,7 @@ export class DiagnosticCollector {
     );
   }
 
-  add(diagnostic: CompatibilityDiagnosticV1): void {
+  add(diagnostic: CompatibilityDiagnosticV2): void {
     this.items.push(diagnostic);
   }
 

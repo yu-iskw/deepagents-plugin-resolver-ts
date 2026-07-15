@@ -8,6 +8,7 @@ import type {
   PolicyDecision,
   PolicyEffect,
   PolicyRules,
+  ProfileField,
 } from '@deepagents-plugins/schema';
 
 export interface PolicyEvaluatorOptions {
@@ -40,6 +41,22 @@ function capabilityEffect(
       return rules.commands;
     case 'subagents':
       return rules.subagents;
+    case 'asyncSubagents':
+      return rules.asyncSubagents;
+    case 'memory.static':
+      return rules.memory?.static;
+    case 'memory.writable':
+      return rules.memory?.writable;
+    case 'profiles.fragment':
+      return rules.profiles?.fragment;
+    case 'interpreter':
+      return rules.interpreter;
+    case 'ptc':
+      return rules.ptc;
+    case 'rubrics':
+      return rules.rubrics;
+    case 'hitl':
+      return rules.hitl;
     case 'mcp.remoteHttp':
       return rules.mcp?.remoteHttp;
     case 'mcp.stdio':
@@ -111,22 +128,7 @@ export class PolicyEvaluator {
       'deny';
 
     if (effect === 'review') {
-      if (this.isApproved(query)) {
-        return {
-          effect: 'allow',
-          ruleId: `${query.profile}/${query.capability}/approved`,
-          reason: `Capability "${query.capability}" approved by digest-bound approval record.`,
-        };
-      }
-      if (this.strict) {
-        return {
-          effect: 'deny',
-          ruleId: `${query.profile}/${query.capability}/review-strict`,
-          reason: `Capability "${query.capability}" requires review and no approval record matches digest ${query.contentDigest ?? '<unknown>'} in strict mode.`,
-          remediation:
-            'Provide a PluginApproval record bound to the plugin content digest, or change the policy profile.',
-        };
-      }
+      return this.evaluateReview(query, effect);
     }
 
     return {
@@ -134,15 +136,67 @@ export class PolicyEvaluator {
       ruleId: `${query.profile}/${query.capability}`,
       reason:
         effect === 'allow'
-          ? `Capability "${query.capability}" allowed by policy profile "${query.profile}".`
-          : effect === 'review'
-            ? `Capability "${query.capability}" requires review under policy profile "${query.profile}".`
-            : `Capability "${query.capability}" denied by policy profile "${query.profile}".`,
+          ? `Capability "${query.capability}" allowed by trust policy "${query.profile}".`
+          : `Capability "${query.capability}" denied by trust policy "${query.profile}".`,
       ...(effect === 'deny'
         ? {
-            remediation: `Remove the component, or approve the exact plugin digest under a profile that permits "${query.capability}".`,
+            remediation: `Remove the component, or approve the exact plugin digest under a trust policy that permits "${query.capability}".`,
           }
         : {}),
+    };
+  }
+
+  /**
+   * Evaluate a single harness-profile governance field (RFC v2 section 14).
+   * Falls back to the deny-by-default governance table for third parties.
+   */
+  evaluateProfileField(query: Omit<CapabilityQuery, 'capability'> & { field: ProfileField }): PolicyDecision {
+    const profileRules = this.resolveProfileRules(query.profile);
+    const effect =
+      profileRules?.profiles?.[query.field] ??
+      this.document?.defaults.profiles?.[query.field] ??
+      DEFAULT_POLICY_RULES.profiles[query.field] ??
+      'deny';
+    if (effect === 'review') {
+      return this.evaluateReview(
+        { ...query, capability: `profiles.${query.field}` },
+        effect,
+      );
+    }
+    return {
+      effect,
+      ruleId: `${query.profile}/profiles.${query.field}`,
+      reason:
+        effect === 'allow'
+          ? `Profile field "${query.field}" allowed by trust policy "${query.profile}".`
+          : `Profile field "${query.field}" denied by trust policy "${query.profile}".`,
+      ...(effect === 'deny'
+        ? { remediation: `Remove the "${query.field}" fragment field or use a trust policy that permits it.` }
+        : {}),
+    };
+  }
+
+  private evaluateReview(query: CapabilityQuery, effect: PolicyEffect): PolicyDecision {
+    if (this.isApproved(query)) {
+      return {
+        effect: 'allow',
+        ruleId: `${query.profile}/${query.capability}/approved`,
+        reason: `Capability "${query.capability}" approved by digest-bound approval record.`,
+      };
+    }
+    if (this.strict) {
+      return {
+        effect: 'deny',
+        ruleId: `${query.profile}/${query.capability}/review-strict`,
+        reason: `Capability "${query.capability}" requires review and no approval record matches digest ${query.contentDigest ?? '<unknown>'} in strict mode.`,
+        remediation:
+          'Provide a PluginApproval record bound to the plugin content digest, or change the trust policy.',
+      };
+    }
+    return {
+      effect,
+      ruleId: `${query.profile}/${query.capability}`,
+      reason: `Capability "${query.capability}" requires review under trust policy "${query.profile}".`,
     };
   }
 

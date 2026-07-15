@@ -76,4 +76,4 @@ export const lockedSourceSchema = z.object({
   integrity: z.string().optional(),
   pluginRoot: z.string().optional(),
 });
-export type LockedSourceV1 = z.infer<typeof lockedSourceSchema>;
+export type LockedSourceV2 = z.infer<typeof lockedSourceSchema>;

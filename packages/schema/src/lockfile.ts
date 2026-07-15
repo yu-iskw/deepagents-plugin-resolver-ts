@@ -2,10 +2,13 @@ import { z } from 'zod';
 
 import { lockedSourceSchema } from './source.js';
 
-/** Lockfile v1 (RFC section 10). */
+/** Lockfile v2 (RFC v2 section 9). */
 
-export const LOCKFILE_VERSION = 1;
+export const LOCKFILE_VERSION = 2;
 export const LOCKFILE_NAME = 'deepagents.plugins.lock.json';
+
+/** Claude plugin input profile the compiler targets (RFC section 33). */
+export const COMPILER_PROFILE = 'claude-plugin-v2026-07';
 
 export const lockedMarketplaceSchema = z.object({
   name: z.string(),
@@ -18,11 +21,14 @@ export const lockedPluginSchema = z.object({
   id: z.string(),
   alias: z.string().optional(),
   version: z.string().optional(),
-  policyProfile: z.string(),
+  trustPolicy: z.string(),
   source: lockedSourceSchema,
   pluginRoot: z.string(),
   contentDigest: z.string(),
   manifestDigest: z.string(),
+  detectedCapabilities: z.array(z.string()),
+  compilerProfile: z.string(),
+  approvalDigest: z.string().optional(),
   files: z.record(z.string(), z.string()),
 });
 export type LockedPlugin = z.infer<typeof lockedPluginSchema>;

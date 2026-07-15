@@ -18,7 +18,7 @@ describe('PolicyEvaluator', () => {
   it('lets profiles override defaults but never lets plugins pick profiles', () => {
     const evaluator = new PolicyEvaluator({
       document: {
-        apiVersion: 'deepagents.plugins/v1',
+        apiVersion: 'deepagents.plugins/v2',
         kind: 'PluginPolicy',
         defaults: { subagents: 'deny' },
         profiles: { internal: { subagents: 'allow' } },
@@ -49,7 +49,7 @@ describe('PolicyEvaluator', () => {
       strict: true,
       approvals: [
         {
-          apiVersion: 'deepagents.plugins/v1',
+          apiVersion: 'deepagents.plugins/v2',
           kind: 'PluginApproval',
           pluginDigest: 'sha256:aaa',
           approvedCapabilities: ['subagents'],
@@ -72,7 +72,7 @@ describe('PolicyEvaluator', () => {
       strict: true,
       approvals: [
         {
-          apiVersion: 'deepagents.plugins/v1',
+          apiVersion: 'deepagents.plugins/v2',
           kind: 'PluginApproval',
           pluginDigest: 'sha256:aaa',
           approvedCapabilities: ['subagents'],
@@ -89,6 +89,83 @@ describe('PolicyEvaluator', () => {
         contentDigest: 'sha256:aaa',
       }).effect,
     ).toBe('deny');
+  });
+});
+
+describe('PolicyEvaluator v2 capabilities', () => {
+  it('applies RFC v2 Appendix A defaults for new capabilities', () => {
+    const evaluator = new PolicyEvaluator();
+    const query = { pluginId: 'p@direct', profile: 'unknown-profile' };
+    expect(evaluator.evaluate({ ...query, capability: 'memory.static' }).effect).toBe('review');
+    expect(evaluator.evaluate({ ...query, capability: 'memory.writable' }).effect).toBe('deny');
+    expect(evaluator.evaluate({ ...query, capability: 'interpreter' }).effect).toBe('deny');
+    expect(evaluator.evaluate({ ...query, capability: 'ptc' }).effect).toBe('deny');
+    expect(evaluator.evaluate({ ...query, capability: 'asyncSubagents' }).effect).toBe('deny');
+    expect(evaluator.evaluate({ ...query, capability: 'rubrics' }).effect).toBe('review');
+    expect(evaluator.evaluate({ ...query, capability: 'hitl' }).effect).toBe('allow');
+    expect(evaluator.evaluate({ ...query, capability: 'profiles.fragment' }).effect).toBe('review');
+  });
+
+  it('governs harness profile fields per RFC section 14', () => {
+    const evaluator = new PolicyEvaluator();
+    const base = { pluginId: 'p@direct', profile: 'third-party-restricted' } as const;
+    expect(evaluator.evaluateProfileField({ ...base, field: 'basePromptReplacement' }).effect).toBe(
+      'deny',
+    );
+    expect(evaluator.evaluateProfileField({ ...base, field: 'promptSuffix' }).effect).toBe(
+      'review',
+    );
+    expect(
+      evaluator.evaluateProfileField({ ...base, field: 'overridePluginToolDescription' }).effect,
+    ).toBe('allow');
+    expect(
+      evaluator.evaluateProfileField({ ...base, field: 'overrideApplicationToolDescription' })
+        .effect,
+    ).toBe('deny');
+    expect(evaluator.evaluateProfileField({ ...base, field: 'excludeMiddleware' }).effect).toBe(
+      'deny',
+    );
+    expect(
+      evaluator.evaluateProfileField({ ...base, field: 'generalPurposeSubagent' }).effect,
+    ).toBe('deny');
+  });
+
+  it('allows governed profile fields through digest-bound approvals in strict mode', () => {
+    const strict = new PolicyEvaluator({
+      strict: true,
+      approvals: [
+        {
+          apiVersion: 'deepagents.plugins/v2',
+          kind: 'PluginApproval',
+          pluginDigest: 'sha256:aaa',
+          approvedCapabilities: ['profiles.promptSuffix'],
+          approvedBy: 'security@example.com',
+        },
+      ],
+    });
+    const approved = strict.evaluateProfileField({
+      pluginId: 'p@direct',
+      profile: 'third-party-restricted',
+      field: 'promptSuffix',
+      contentDigest: 'sha256:aaa',
+    });
+    expect(approved.effect).toBe('allow');
+    const denied = strict.evaluateProfileField({
+      pluginId: 'p@direct',
+      profile: 'third-party-restricted',
+      field: 'promptSuffix',
+      contentDigest: 'sha256:bbb',
+    });
+    expect(denied.effect).toBe('deny');
+  });
+
+  it('permits development trust policy to relax memory and rubrics', () => {
+    const evaluator = new PolicyEvaluator();
+    const query = { pluginId: 'p@direct', profile: 'development' };
+    expect(evaluator.evaluate({ ...query, capability: 'memory.static' }).effect).toBe('allow');
+    expect(evaluator.evaluate({ ...query, capability: 'rubrics' }).effect).toBe('allow');
+    expect(evaluator.evaluate({ ...query, capability: 'memory.writable' }).effect).toBe('deny');
+    expect(evaluator.evaluate({ ...query, capability: 'ptc' }).effect).toBe('deny');
   });
 });
 
