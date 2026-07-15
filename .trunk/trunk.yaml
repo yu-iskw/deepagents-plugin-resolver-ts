@@ -25,6 +25,11 @@ lint:
     - linters: [markdownlint-cli2]
       paths:
         - RFC.md
+    # External reference URLs and fixture fake hosts are not gated by CI.
+    - linters: [markdown-link-check]
+      paths:
+        - RFC.md
+        - fixtures/**
   enabled:
     # - semgrep@1.155.0
     - stylelint@17.6.0

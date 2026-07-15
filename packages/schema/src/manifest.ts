@@ -74,7 +74,11 @@ export const runtimeConfigSchema = z.object({
       maxLoadedMemoryChars: z.number().int().positive().default(20_000),
       collisionPolicy: collisionActionSchema.default('qualify'),
     })
-    .default({ maxPluginPromptChars: 30_000, maxLoadedMemoryChars: 20_000, collisionPolicy: 'qualify' }),
+    .default({
+      maxPluginPromptChars: 30_000,
+      maxLoadedMemoryChars: 20_000,
+      collisionPolicy: 'qualify',
+    }),
   interpreter: z
     .object({
       enabled: z.boolean().default(false),
@@ -98,7 +102,11 @@ export type RuntimeConfig = z.infer<typeof runtimeConfigSchema>;
 export const DEFAULT_RUNTIME_CONFIG: RuntimeConfig = {
   compatibilityMode: 'standard',
   deepAgents: { featurePolicy: { beta: 'explicit', preview: 'explicit' } },
-  context: { maxPluginPromptChars: 30_000, maxLoadedMemoryChars: 20_000, collisionPolicy: 'qualify' },
+  context: {
+    maxPluginPromptChars: 30_000,
+    maxLoadedMemoryChars: 20_000,
+    collisionPolicy: 'qualify',
+  },
   interpreter: { enabled: false, ptcDefault: 'deny' },
   asyncSubagents: { allowedHosts: [] },
   streaming: { attachPluginProvenance: true, redactToolArguments: true },

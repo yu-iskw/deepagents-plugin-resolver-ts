@@ -108,12 +108,7 @@ export const compiledMemorySourceSchema = z.object({
   id: z.string(),
   pluginId: z.string(),
   path: z.string(),
-  kind: z.enum([
-    'static-instructions',
-    'procedural',
-    'episodic-template',
-    'organization-template',
-  ]),
+  kind: z.enum(['static-instructions', 'procedural', 'episodic-template', 'organization-template']),
   loadMode: z.enum(['startup', 'on-demand']),
   scope: z.enum(['agent', 'user', 'tenant', 'organization']),
   access: z.enum(['read-only', 'read-write']),

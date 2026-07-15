@@ -391,8 +391,6 @@ async function compileHooks(context: PluginContext): Promise<void> {
   }
 }
 
-
-
 function compileOneHook(
   context: PluginContext,
   claudeEvent: string,

@@ -59,7 +59,10 @@ export async function compileRubrics(context: PluginContext): Promise<void> {
       name,
       criteria: parsed.data.criteria,
       recommendedGraderModel: parsed.data.recommendedGraderModel,
-      maxIterations: Math.min(parsed.data.maxIterations ?? MAX_RUBRIC_ITERATIONS, MAX_RUBRIC_ITERATIONS),
+      maxIterations: Math.min(
+        parsed.data.maxIterations ?? MAX_RUBRIC_ITERATIONS,
+        MAX_RUBRIC_ITERATIONS,
+      ),
       dataPolicy: { allowExternalGrader: parsed.data.dataPolicy?.allowExternalGrader ?? false },
       compatibility: 'requires-adapter',
     });

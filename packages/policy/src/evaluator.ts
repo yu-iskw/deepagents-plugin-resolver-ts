@@ -129,7 +129,9 @@ export class PolicyEvaluator {
    * Evaluate a single harness-profile governance field (RFC v2 section 14).
    * Falls back to the deny-by-default governance table for third parties.
    */
-  evaluateProfileField(query: Omit<CapabilityQuery, 'capability'> & { field: ProfileField }): PolicyDecision {
+  evaluateProfileField(
+    query: Omit<CapabilityQuery, 'capability'> & { field: ProfileField },
+  ): PolicyDecision {
     const profileRules = this.resolveProfileRules(query.profile);
     const effect =
       profileRules?.profiles?.[query.field] ??
@@ -137,10 +139,7 @@ export class PolicyEvaluator {
       DEFAULT_POLICY_RULES.profiles[query.field] ??
       'deny';
     if (effect === 'review') {
-      return this.evaluateReview(
-        { ...query, capability: `profiles.${query.field}` },
-        effect,
-      );
+      return this.evaluateReview({ ...query, capability: `profiles.${query.field}` }, effect);
     }
     return {
       effect,
@@ -150,7 +149,9 @@ export class PolicyEvaluator {
           ? `Profile field "${query.field}" allowed by trust policy "${query.profile}".`
           : `Profile field "${query.field}" denied by trust policy "${query.profile}".`,
       ...(effect === 'deny'
-        ? { remediation: `Remove the "${query.field}" fragment field or use a trust policy that permits it.` }
+        ? {
+            remediation: `Remove the "${query.field}" fragment field or use a trust policy that permits it.`,
+          }
         : {}),
     };
   }

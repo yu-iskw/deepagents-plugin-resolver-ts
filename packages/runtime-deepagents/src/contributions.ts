@@ -40,7 +40,8 @@ export interface ProvenanceStreamEvent<T = unknown> {
 }
 
 export interface CreateDeepAgentsContributionsOptions
-  extends Omit<CreatePluginRuntimeOptions, 'bundle' | 'registeredAdapters'>,
+  extends
+    Omit<CreatePluginRuntimeOptions, 'bundle' | 'registeredAdapters'>,
     Pick<DetectCapabilitiesOptions, 'module' | 'autoImport' | 'registeredAdapters'> {
   bundle: LoadedPluginBundle;
   /** Pre-detected capability map; skips detection when provided. */
@@ -151,7 +152,7 @@ export async function createDeepAgentsContributions(
   )
     ? []
     : [
-        <T,>(event: T, componentId: string): ProvenanceStreamEvent<T> => {
+        <T>(event: T, componentId: string): ProvenanceStreamEvent<T> => {
           const metadata = streamByComponent.get(componentId);
           return {
             event,

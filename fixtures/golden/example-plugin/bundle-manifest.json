@@ -1,5 +1,5 @@
 {
-  "bundleDigest": "sha256:5e38dd37b40469f529c8c98ac5a2274b04e2960c1161ce1a10847d86dc43763e",
+  "bundleDigest": "sha256:9006da2825e7960e89eec4c4820c33967ed0608dfacea3934d53b591f8cb916b",
   "files": [
     {
       "path": "compatibility-report.json",
@@ -11,7 +11,7 @@
     },
     {
       "path": "memory/example-plugin/guidelines.md",
-      "sha256": "sha256:993e847ac551ce396b9cd8e53c3d54c7278f775177be77a95d5e44859f5dfc33"
+      "sha256": "sha256:3ddcc74c4944f92da6b405b1f1b542eb27d00c27417917340da4ea8170e4dc1f"
     },
     {
       "path": "plugins/example-plugin/manifest.json",
@@ -27,7 +27,7 @@
     },
     {
       "path": "rubrics/example-plugin/review-quality.json",
-      "sha256": "sha256:5f85f42087c430444a885ea00fd3d65707d47140922c3eb57bb77d63330096bb"
+      "sha256": "sha256:15deb317ebf86017e069c1c14e907afa7dde2a4b5060b101c6a53d3d7f2266b5"
     },
     {
       "path": "skills/example-plugin/security-review/references/checklist.md",

@@ -18,9 +18,7 @@ import {
   resolvePluginSetFromProject,
   type PipelineOptions,
 } from '@deepagents-plugins/core';
-import {
-  detectDeepAgentsCapabilities,
-} from '@deepagents-plugins/runtime-deepagents';
+import { detectDeepAgentsCapabilities } from '@deepagents-plugins/runtime-deepagents';
 import {
   ExitCodes,
   PluginResolutionError,
@@ -112,6 +110,42 @@ output:
   emitCompatibilityReport: true
   emitSbom: false
 `;
+
+async function reportCapabilities(io: CliIo, flags: GlobalFlags): Promise<void> {
+  const options = pipelineOptions(flags);
+  const capabilities = await detectDeepAgentsCapabilities();
+  let comparison: { capability: string; required: boolean; available: boolean }[] = [];
+  const manifestPath = path.join(options.projectDir, MANIFEST_NAME);
+  const hasManifest = await fs.access(manifestPath).then(
+    () => true,
+    () => false,
+  );
+  if (hasManifest) {
+    const { compiled } = await auditPluginSetFromProject(options);
+    comparison = requiredCapabilitiesFromIr(compiled.ir).map((requirement) => ({
+      capability: requirement.capability,
+      required: requirement.required,
+      available: capabilityAvailable(capabilities, requirement.capability),
+    }));
+  }
+  if (flags.json) {
+    io.out(canonicalJsonStringify({ capabilities, comparison }).trimEnd());
+    return;
+  }
+  io.out(`Deep Agents detected: ${capabilities.skills ? 'yes' : 'no'}`);
+  if (capabilities.version) io.out(`Version: ${capabilities.version}`);
+  io.out(
+    `skills=${capabilities.skills} memory=${capabilities.memory} harnessProfiles=${capabilities.harnessProfiles} syncSubagents=${capabilities.syncSubagents} asyncSubagents=${capabilities.asyncSubagents} interruptOn=${capabilities.interruptOn} permissions=${capabilities.permissions} streamTransformers=${capabilities.streamTransformers}`,
+  );
+  io.out(
+    `interpreter=${capabilities.interpreter.available} ptc=${capabilities.interpreter.ptc} rubric=${capabilities.rubric.available}`,
+  );
+  for (const entry of comparison) {
+    io.out(
+      `${entry.available ? 'ok  ' : entry.required ? 'FAIL' : 'warn'} ${entry.capability}${entry.required ? ' (required)' : ''}`,
+    );
+  }
+}
 
 export function createProgram(io: CliIo = defaultIo): Command {
   const program = new Command('deepagents-plugins')
@@ -285,41 +319,7 @@ export function createProgram(io: CliIo = defaultIo): Command {
   program
     .command('capabilities')
     .description('detect installed Deep Agents capabilities and compare with the plugin set')
-    .action(async () => {
-      const options = pipelineOptions(flags());
-      const capabilities = await detectDeepAgentsCapabilities();
-      let comparison: { capability: string; required: boolean; available: boolean }[] = [];
-      const manifestPath = path.join(options.projectDir, MANIFEST_NAME);
-      const hasManifest = await fs.access(manifestPath).then(
-        () => true,
-        () => false,
-      );
-      if (hasManifest) {
-        const { compiled } = await auditPluginSetFromProject(options);
-        comparison = requiredCapabilitiesFromIr(compiled.ir).map((requirement) => ({
-          capability: requirement.capability,
-          required: requirement.required,
-          available: capabilityAvailable(capabilities, requirement.capability),
-        }));
-      }
-      if (flags().json) {
-        io.out(canonicalJsonStringify({ capabilities, comparison }).trimEnd());
-        return;
-      }
-      io.out(`Deep Agents detected: ${capabilities.skills ? 'yes' : 'no'}`);
-      if (capabilities.version) io.out(`Version: ${capabilities.version}`);
-      io.out(
-        `skills=${capabilities.skills} memory=${capabilities.memory} harnessProfiles=${capabilities.harnessProfiles} syncSubagents=${capabilities.syncSubagents} asyncSubagents=${capabilities.asyncSubagents} interruptOn=${capabilities.interruptOn} permissions=${capabilities.permissions} streamTransformers=${capabilities.streamTransformers}`,
-      );
-      io.out(
-        `interpreter=${capabilities.interpreter.available} ptc=${capabilities.interpreter.ptc} rubric=${capabilities.rubric.available}`,
-      );
-      for (const entry of comparison) {
-        io.out(
-          `${entry.available ? 'ok  ' : entry.required ? 'FAIL' : 'warn'} ${entry.capability}${entry.required ? ' (required)' : ''}`,
-        );
-      }
-    });
+    .action(async () => reportCapabilities(io, flags()));
 
   program
     .command('sbom')

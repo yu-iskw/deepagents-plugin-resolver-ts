@@ -80,14 +80,26 @@ function governFragment(
 ): { config: CompiledHarnessProfileV2['config']; stripped: boolean } {
   const governor = makeFieldGovernor(context);
   const config: CompiledHarnessProfileV2['config'] = {};
-  if (fragment.baseSystemPrompt !== undefined && governor.allowed('basePromptReplacement', component)) {
+  if (
+    fragment.baseSystemPrompt !== undefined &&
+    governor.allowed('basePromptReplacement', component)
+  ) {
     config.baseSystemPrompt = fragment.baseSystemPrompt;
   }
   if (fragment.systemPromptSuffix !== undefined && governor.allowed('promptSuffix', component)) {
     config.systemPromptSuffix = fragment.systemPromptSuffix;
   }
-  governToolField(fragment, governor, component, `plugin.${context.input.runtimeNamespace}.`, config);
-  if (fragment.excludedMiddleware !== undefined && governor.allowed('excludeMiddleware', component)) {
+  governToolField(
+    fragment,
+    governor,
+    component,
+    `plugin.${context.input.runtimeNamespace}.`,
+    config,
+  );
+  if (
+    fragment.excludedMiddleware !== undefined &&
+    governor.allowed('excludeMiddleware', component)
+  ) {
     config.excludedMiddleware = fragment.excludedMiddleware;
   }
   if (

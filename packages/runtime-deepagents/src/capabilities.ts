@@ -62,8 +62,7 @@ export async function detectDeepAgentsCapabilities(
   if (!isRecord(module)) return capabilities;
   if (!hasFunction(module, 'createDeepAgent')) return capabilities;
 
-  const version =
-    typeof module['version'] === 'string' ? (module['version']) : undefined;
+  const version = typeof module['version'] === 'string' ? module['version'] : undefined;
   capabilities.version = version;
 
   // createDeepAgent existing implies the core option surface.
