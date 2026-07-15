@@ -1,6 +1,6 @@
 # Security threat model
 
-Plugin content is untrusted input (RFC section 21). Trust boundary:
+Plugin content is untrusted input (RFC section 28). Trust boundary:
 untrusted sources → build sandbox → approved immutable bundle → runtime.
 
 ## Mitigations implemented
@@ -21,10 +21,18 @@ untrusted sources → build sandbox → approved immutable bundle → runtime.
 | Bundle tampering          | Stream-hash verification of every file at load; fail closed                                 | `runtime/load-bundle.ts`                              |
 | Namespace spoofing        | Reserved namespaces (`deepagents.*`, `plugin.*`, …), qualified IDs, collision errors        | `schema/ids.ts`, resolver                             |
 | Parser exploits           | Safe YAML (core schema), plain JSON.parse, Markdown as text                                 | `resolver/config.ts`, `compiler/frontmatter.ts`       |
+| Profile override abuse    | Field governance table; base-prompt/app-tool overrides denied, denied fields stripped       | `policy/evaluator.ts`, `compiler/compile-profiles.ts` |
+| PTC approval bypass       | PTC is a separate deny-by-default policy boundary with its own allowlist                    | `schema/policy.ts`, `compiler/compile-interpreter.ts` |
+| Async exfiltration        | Agent Protocol endpoint allowlist (`runtime.asyncSubagents.allowedHosts`); no embedded tokens | `compiler/compile-subagents.ts`                     |
+| Memory poisoning          | Plugin memory is read-only and agent-scoped by default; writable requests denied (DAP2307)  | `compiler/compile-memory.ts`, `policy/defaults.ts`    |
+| Rubric loop abuse         | Templates-only compilation; activation adapter-gated with host-controlled iteration cap     | `compiler/compile-rubrics.ts`                         |
+| Stream leakage            | Per-component provenance tags and policy-driven redaction fields in stream metadata         | `compiler/stream-metadata.ts`, `runtime-deepagents`   |
+| Capability drift          | Lockfile v2 records detected capabilities; frozen builds fail when they change              | `resolver/lockfile-engine.ts`                         |
 
-## Defaults (RFC Appendix D)
+## Defaults (RFC Appendix A)
 
-Skills/commands allow after validation; subagents and remote MCP require
-review; stdio MCP, command hooks, LSP, monitors, binaries, and unknown
-components are denied. `review` fails in strict unattended builds unless a
-digest-bound `PluginApproval` matches.
+Skills/commands allow after validation; subagents, memory, profiles, and
+remote MCP require review; stdio MCP, command hooks, LSP, monitors, binaries,
+interpreters, PTC, async subagents, writable plugin memory, and unknown
+components are denied. Rubrics compile as templates only. `review` fails in
+strict unattended builds unless a digest-bound `PluginApproval` matches.
