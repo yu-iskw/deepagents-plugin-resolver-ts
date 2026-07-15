@@ -1,60 +1,80 @@
-# {PROJECT_NAME}
+# deepagents-plugin-resolver-ts
 
-{PROJECT_DESCRIPTION}
+Build-time resolver, compiler, and runtime loader that lets [Deep Agents JS](https://github.com/langchain-ai/deepagentsjs) applications consume compatible capabilities from [Claude Code plugins](https://code.claude.com/docs/en/plugins) and plugin marketplaces — without embedding Claude Code, cloning repositories at runtime, or trusting plugin content.
 
-## Getting Started
+> **Resolve, validate, and compile untrusted plugins before deployment; load only immutable, policy-approved artifacts at runtime.**
 
-### Prerequisites
+See [RFC.md](RFC.md) for the full design.
 
-- [pnpm](https://pnpm.io/) **11.x** (see `packageManager` in `package.json`; use [Corepack](https://nodejs.org/api/corepack.html): `corepack enable`)
-- Node.js **22+** (see `engines` in `package.json`; `.node-version` pins the version used for local dev and CI)
+## How it works
 
-Dependency installs follow pnpm 11 supply-chain settings in [`pnpm-workspace.yaml`](pnpm-workspace.yaml): **minimum release age** (this template uses a **7-day** quarantine, stricter than pnpm’s built-in 24-hour default), **blocking exotic transitive dependencies**, and an **`allowBuilds`** allowlist for packages that run install scripts. See [pnpm 11 release notes](https://pnpm.io/blog/releases/11.0) and [Supply-chain defaults (Socket)](https://socket.dev/blog/pnpm-11-adds-new-supply-chain-protection-defaults).
+1. **Resolve** — plugins declared in `deepagents.plugins.yaml` are fetched from Claude Code marketplaces, GitHub, generic Git, npm, archives, or local directories. Every mutable reference is pinned (Git SHA, exact npm version + integrity, archive SHA-256) into `deepagents.plugins.lock.json`.
+2. **Validate** — structure, manifests, paths, symlinks, sizes, and archive expansion are checked; nothing is ever executed during inspection.
+3. **Policy** — an application-owned policy classifies each capability (`allow` / `review` / `deny`). Executable behavior (stdio MCP, command hooks, binaries, monitors, LSP) is denied by default.
+4. **Compile** — supported components translate into a stable, versioned intermediate representation (skills, commands, subagents, MCP descriptors, hooks) with an honest compatibility level: `native`, `translated`, `partial`, `unsupported`, or `blocked-by-policy`.
+5. **Bundle** — assets are materialized into a deterministic directory (`.deepagents/plugins`) with a digest-bound bundle manifest, compatibility report, provenance records, and optional CycloneDX SBOM — ready to `COPY` into an OCI image.
+6. **Load** — at runtime, `@deepagents-plugins/runtime` verifies every file against the bundle manifest (fail closed) and exposes skills, commands, subagents, and wrapped tools to `createDeepAgent`. No network, Git, or package installation at runtime.
 
-Linting and formatting use [Trunk](https://trunk.io/) (ESLint, Prettier, and more). The Trunk **launcher** is installed with project dependencies—you do not need a separate Trunk install for the default workflow.
+## Packages
 
-### Installation
+| Package                             | Responsibility                                                    |
+| ----------------------------------- | ----------------------------------------------------------------- |
+| `@deepagents-plugins/schema`        | Zod schemas, portable IR, shared types, canonical JSON + hashing  |
+| `@deepagents-plugins/policy`        | Capability/source policy engine, profiles, digest-bound approvals |
+| `@deepagents-plugins/resolver`      | Source + marketplace resolution, safe extraction, lockfile engine |
+| `@deepagents-plugins/compiler`      | Component translation into IR, deterministic bundler, reports     |
+| `@deepagents-plugins/adapter-mcp`   | MCP descriptors and authorization-wrapped tool construction       |
+| `@deepagents-plugins/adapter-hooks` | Safe lifecycle hook translation, middleware adapter registry      |
+| `@deepagents-plugins/runtime`       | Bundle verification and runtime loading (no build-time deps)      |
+| `@deepagents-plugins/core`          | Stable facade over the resolve → compile → load pipeline          |
+| `@deepagents-plugins/cli`           | `deepagents-plugins` command-line tool                            |
+| `@deepagents-plugins/testkit`       | Fixture builders, golden tests, security conformance suite        |
+
+## Quickstart
+
+```bash
+pnpm add @deepagents-plugins/runtime
+pnpm add -D @deepagents-plugins/cli
+
+pnpm deepagents-plugins init          # create deepagents.plugins.yaml
+pnpm deepagents-plugins add example-plugin@my-marketplace
+pnpm deepagents-plugins resolve       # pin sources into the lockfile
+pnpm deepagents-plugins audit         # policy + compatibility report
+pnpm deepagents-plugins compile --frozen-lockfile --reproducible
+```
+
+Use the compiled bundle with Deep Agents:
+
+```ts
+import { createDeepAgent } from 'deepagents';
+import { createPluginRuntimeFromDirectory } from '@deepagents-plugins/core';
+
+const runtime = await createPluginRuntimeFromDirectory({
+  directory: process.env.DEEPAGENTS_PLUGIN_DIR ?? '.deepagents/plugins',
+  verifyIntegrity: true,
+});
+
+const agent = await createDeepAgent({
+  model,
+  skills: runtime.skillSources,
+  subagents: runtime.subagents,
+  systemPrompt: { prefix: runtime.systemPromptPrefix },
+});
+```
+
+See [`examples/`](examples/) for marketplace usage, Cloud Run deployment, and custom source resolvers, and [`docs/`](docs/) for architecture, compatibility, and security references.
+
+## Development
 
 ```bash
 pnpm install
-```
-
-Optional: prefetch Trunk’s hermetic tools (helpful for offline work or CI images):
-
-```bash
-pnpm exec trunk install
-```
-
-If you prefer a global `trunk` on your PATH, see the [Trunk installation guide](https://docs.trunk.io/references/cli/getting-started/install) (e.g. `brew install trunk-io` on macOS).
-
-### Supply-chain protections
-
-The template uses **pnpm 11** with settings in [`pnpm-workspace.yaml`](pnpm-workspace.yaml): a **7-day** [`minimumReleaseAge`](https://pnpm.io/settings#minimumreleaseage) (10080 minutes, stricter than pnpm’s default 1 day), [`blockExoticSubdeps`](https://pnpm.io/settings#blockexoticsubdeps) enabled, and an [`allowBuilds`](https://pnpm.io/settings#allowbuilds) map for dependencies that must run install scripts (pnpm 11 requires this for native toolchain packages such as esbuild). See the [pnpm 11 release notes](https://pnpm.io/blog/releases/11.0).
-
-### Development
-
-```bash
-pnpm dev
-```
-
-### Build
-
-```bash
 pnpm build
-```
-
-### Linting & Formatting
-
-```bash
+pnpm test
 pnpm lint
-pnpm format
 ```
 
-## Project Structure
-
-- `packages/`: Monorepo packages
-  - `common/`: Shared utilities and types
+Golden outputs under `fixtures/golden/` are regenerated with `UPDATE_GOLDEN=1 pnpm vitest run packages/testkit`.
 
 ## License
 
-{LICENSE}
+Apache-2.0
