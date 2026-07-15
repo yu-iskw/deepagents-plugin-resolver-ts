@@ -62,7 +62,10 @@ const agent = await createDeepAgent({
 });
 ```
 
-See [`examples/`](examples/) for marketplace usage, Cloud Run deployment, and custom source resolvers, and [`docs/`](docs/) for architecture, compatibility, and security references.
+See [`examples/`](examples/) for marketplace usage (including a runnable
+[`official-marketplace`](examples/official-marketplace/) example against
+Anthropic’s catalog), Cloud Run deployment, and custom source resolvers, and
+[`docs/`](docs/) for architecture, compatibility, and security references.
 
 ## Development
 

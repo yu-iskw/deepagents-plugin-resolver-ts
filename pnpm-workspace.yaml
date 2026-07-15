@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - examples/official-marketplace
 
 # Build scripts: pnpm 11 requires explicit approval for dependencies that run install scripts.
 # Approved for Vite/Vitest toolchain (esbuild native binary, unrs-resolver postinstall).

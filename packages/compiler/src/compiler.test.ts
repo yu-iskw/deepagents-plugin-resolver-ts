@@ -121,6 +121,39 @@ describe('frontmatter', () => {
     expect(findClaudeVariables(body)).toEqual(['$ARGUMENTS']);
     expect(parseFrontmatter('no frontmatter').frontmatter).toEqual({});
   });
+
+  it('falls back for unquoted Claude plugin descriptions that contain ": "', () => {
+    const markdown = [
+      '---',
+      'name: silent-failure-hunter',
+      'description: Use this agent when reviewing code. Context: Daisy finished a feature.',
+      'model: inherit',
+      '---',
+      '',
+      'Body text',
+      '',
+    ].join('\n');
+    const { frontmatter, body } = parseFrontmatter(markdown);
+    expect(frontmatter.name).toBe('silent-failure-hunter');
+    expect(String(frontmatter.description)).toContain('Context: Daisy');
+    expect(frontmatter.model).toBe('inherit');
+    expect(body.trim()).toBe('Body text');
+  });
+
+  it('parses allowed-tools values that contain colons inside Bash patterns', () => {
+    const markdown = [
+      '---',
+      'allowed-tools: Bash(gh issue view:*), Bash(gh pr list:*)',
+      'description: Code review a pull request',
+      '---',
+      '',
+      'Review it.',
+      '',
+    ].join('\n');
+    const { frontmatter } = parseFrontmatter(markdown);
+    expect(frontmatter['allowed-tools']).toBe('Bash(gh issue view:*), Bash(gh pr list:*)');
+    expect(frontmatter.description).toBe('Code review a pull request');
+  });
 });
 
 describe('inspectPlugin', () => {

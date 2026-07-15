@@ -371,6 +371,17 @@ describe('resolvePluginSet end to end (local + marketplace)', () => {
     const rerun = await resolvePluginSet(manifest, builtinResolvers(), context);
     expect(() => assertLockfilesMatch(result.lockfile, rerun.lockfile)).not.toThrow();
 
+    const marketplacePlugin = result.lockfile.plugins.find(
+      (plugin) => plugin.id === 'from-market@test-market',
+    );
+    expect(marketplacePlugin?.source.uri).toBe('marketplace://test-market/plugins/from-market');
+
+    const otherWorkDir = path.join(projectDir, '.work-other');
+    await fs.mkdir(otherWorkDir, { recursive: true });
+    const otherContext = makeContext({ projectDir, workDir: otherWorkDir });
+    const otherRun = await resolvePluginSet(manifest, builtinResolvers(), otherContext);
+    expect(() => assertLockfilesMatch(result.lockfile, otherRun.lockfile)).not.toThrow();
+
     const capabilityDrift = structuredClone(result.lockfile);
     const driftPlugin = capabilityDrift.plugins[0];
     if (driftPlugin) driftPlugin.detectedCapabilities = ['skills', 'mcp'];
