@@ -12,13 +12,16 @@ console.log(
       syncSubagents: runtime.syncSubagents.length,
       skillNames: runtime.skills.map((skill) => skill.runtimeName ?? skill.originalName),
       commandNames: runtime.commands.map((command) => command.name),
+      syncSubagentNames: runtime.syncSubagents.map((subagent) => subagent.name),
     },
     null,
     2,
   ),
 );
 
-if (runtime.skills.length + runtime.commands.length === 0) {
-  console.error('Expected at least one compiled skill or command from official plugins.');
+if (runtime.skills.length + runtime.commands.length + runtime.syncSubagents.length === 0) {
+  console.error(
+    'Expected at least one compiled skill, command, or sync subagent from official plugins.',
+  );
   process.exit(1);
 }

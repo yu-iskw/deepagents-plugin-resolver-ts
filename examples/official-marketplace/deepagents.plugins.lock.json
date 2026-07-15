@@ -13,7 +13,7 @@
       }
     }
   ],
-  "pluginSetDigest": "sha256:3c758edd287f8928762cb6d73b85e460a097018fdbf607360590ead84516c93e",
+  "pluginSetDigest": "sha256:ca7c28fcb05055891c0607c65e014cd7d3d21ec03bea7a06a0de6b7abaad9987",
   "plugins": [
     {
       "compilerProfile": "claude-plugin-v2026-07",
@@ -32,7 +32,7 @@
         "type": "local",
         "uri": "marketplace://claude-plugins-official/plugins/code-review"
       },
-      "trustPolicy": "third-party-restricted"
+      "trustPolicy": "development"
     },
     {
       "compilerProfile": "claude-plugin-v2026-07",
@@ -53,7 +53,7 @@
         "type": "local",
         "uri": "marketplace://claude-plugins-official/plugins/commit-commands"
       },
-      "trustPolicy": "third-party-restricted"
+      "trustPolicy": "development"
     },
     {
       "compilerProfile": "claude-plugin-v2026-07",
@@ -75,7 +75,7 @@
         "type": "local",
         "uri": "marketplace://claude-plugins-official/plugins/feature-dev"
       },
-      "trustPolicy": "third-party-restricted"
+      "trustPolicy": "development"
     },
     {
       "compilerProfile": "claude-plugin-v2026-07",
@@ -94,7 +94,7 @@
         "type": "local",
         "uri": "marketplace://claude-plugins-official/plugins/frontend-design"
       },
-      "trustPolicy": "third-party-restricted"
+      "trustPolicy": "development"
     },
     {
       "compilerProfile": "claude-plugin-v2026-07",
@@ -119,7 +119,7 @@
         "type": "local",
         "uri": "marketplace://claude-plugins-official/plugins/pr-review-toolkit"
       },
-      "trustPolicy": "third-party-restricted"
+      "trustPolicy": "development"
     }
   ],
   "resolverVersion": "0.2.1"

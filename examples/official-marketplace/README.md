@@ -2,7 +2,7 @@
 
 Resolve, compile, and load curated plugins from
 [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official)
-into Deep Agents JS. A live Gemini smoke run exercises the loaded skills.
+into Deep Agents JS.
 
 ## Plugins
 
@@ -16,15 +16,15 @@ into Deep Agents JS. A live Gemini smoke run exercises the loaded skills.
 
 LSP-only (`strict: false`) and hooks/MCP-heavy plugins are intentionally omitted.
 
-Under `third-party-restricted`, sync subagents from official plugins are
-recorded as `requires-approval` until digest-bound approvals are added; skills
-and commands still compile and load.
+This example uses `trustPolicy: development` so official `agents/*.md` compile into
+Deep Agents sync subagents. Production apps should use `third-party-restricted`
+(or similar) plus digest-bound approvals for subagents.
 
 ## Prerequisites
 
 - Network access on first `resolve` (clones the official marketplace via GitHub)
 - Workspace packages built (`pnpm build` from repo root)
-- `GEMINI_API_KEY` for `pnpm agent` only (not required for resolve/compile/smoke)
+- `GEMINI_API_KEY` for `pnpm agent` and `pnpm chat` (not required for resolve/compile/smoke)
 
 ## Commands
 
@@ -33,10 +33,14 @@ From this directory (after `pnpm install` at the repo root):
 ```bash
 pnpm resolve    # fetch + pin deepagents.plugins.lock.json
 pnpm compile    # write .deepagents/plugins (frozen lockfile)
-pnpm smoke      # load bundle, assert skills/commands exist
-pnpm agent      # createDeepAgent + Gemini; needs GEMINI_API_KEY
-pnpm verify     # resolve → compile → smoke → agent
+pnpm smoke      # load bundle, assert skills/commands/subagents exist
+pnpm agent      # one-shot createDeepAgent + Gemini; needs GEMINI_API_KEY
+pnpm chat       # interactive multi-turn REPL; needs GEMINI_API_KEY
+pnpm verify     # resolve → compile → smoke → agent (no chat)
 ```
+
+`pnpm chat` uses an in-process LangGraph `MemorySaver` for the session only;
+restarting the REPL starts a new thread. Type `/exit` to quit.
 
 Optional: `GEMINI_MODEL` (default `gemini-2.5-flash`).
 

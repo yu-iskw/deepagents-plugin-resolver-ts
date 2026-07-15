@@ -11,9 +11,11 @@ marketplaces:
       repository: anthropics/claude-plugins-official
       ref: main
 
+# Demo trust: development allows subagents so official agents/*.md compile.
+# Production apps should prefer third-party-restricted + digest approvals.
 plugins:
   - id: frontend-design@claude-plugins-official
-    trustPolicy: third-party-restricted
+    trustPolicy: &demoTrust development
     features: &officialFeatures
       skills: enabled
       commands: enabled
@@ -21,16 +23,16 @@ plugins:
       mcp: disabled
       hooks: disabled
   - id: code-review@claude-plugins-official
-    trustPolicy: third-party-restricted
+    trustPolicy: *demoTrust
     features: *officialFeatures
   - id: commit-commands@claude-plugins-official
-    trustPolicy: third-party-restricted
+    trustPolicy: *demoTrust
     features: *officialFeatures
   - id: feature-dev@claude-plugins-official
-    trustPolicy: third-party-restricted
+    trustPolicy: *demoTrust
     features: *officialFeatures
   - id: pr-review-toolkit@claude-plugins-official
-    trustPolicy: third-party-restricted
+    trustPolicy: *demoTrust
     features: *officialFeatures
 
 runtime:

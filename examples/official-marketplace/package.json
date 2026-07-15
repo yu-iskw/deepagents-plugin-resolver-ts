@@ -10,6 +10,7 @@
     "compile": "node ../../packages/cli/dist/bin.js compile --project . --frozen-lockfile --reproducible",
     "smoke": "tsx src/load-smoke.ts",
     "agent": "tsx src/run-agent.ts",
+    "chat": "tsx src/chat-repl.ts",
     "verify": "pnpm resolve && pnpm compile && pnpm smoke && pnpm agent"
   },
   "engines": {
@@ -19,6 +20,7 @@
     "@deepagents-plugins/core": "workspace:*",
     "@langchain/core": "^1.1.0",
     "@langchain/google-genai": "^2.1.0",
+    "@langchain/langgraph": "^1.0.0",
     "deepagents": "^1.8.0"
   },
   "devDependencies": {

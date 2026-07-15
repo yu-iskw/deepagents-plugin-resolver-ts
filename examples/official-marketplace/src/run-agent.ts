@@ -1,42 +1,6 @@
-import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
-import { createDeepAgent } from 'deepagents';
+import { createOfficialAgent, exitWithError, lastReplyText } from './create-official-agent.js';
 
-import { loadOfficialPluginRuntime } from './load-runtime.js';
-
-const apiKey = process.env.GEMINI_API_KEY;
-if (!apiKey) {
-  console.error('GEMINI_API_KEY is required to run the live agent example.');
-  process.exit(1);
-}
-
-const runtime = await loadOfficialPluginRuntime();
-if (runtime.skillSources.length === 0) {
-  console.error('Bundle has no skills; run compile first.');
-  process.exit(1);
-}
-
-const skillSummaries = runtime.skills
-  .map(
-    (skill) =>
-      `- ${skill.runtimeName ?? skill.originalName}: ${skill.description ?? 'no description'}`,
-  )
-  .join('\n');
-
-const agent = await createDeepAgent({
-  model: new ChatGoogleGenerativeAI({
-    model: process.env.GEMINI_MODEL ?? 'gemini-2.5-flash',
-    apiKey,
-    temperature: 0,
-  }),
-  skills: runtime.skillSources,
-  systemPrompt: [
-    runtime.systemPromptPrefix,
-    `Compiled skill summaries:\n${skillSummaries}`,
-    'You are verifying that Claude Code plugins compiled for Deep Agents are available.',
-    'Answer briefly. Prefer the compiled skill summaries above when giving a UI tip.',
-    'Do not invent plugins that are not listed.',
-  ].join('\n'),
-});
+const { agent, runtime } = await createOfficialAgent().catch(exitWithError);
 
 const result = await agent.invoke({
   messages: [
@@ -48,7 +12,7 @@ const result = await agent.invoke({
   ],
 });
 
-const reply = String(result.messages?.at(-1)?.text ?? '').trim();
+const reply = lastReplyText(result);
 if (!reply) {
   console.error('Gemini returned an empty response.');
   process.exit(1);
