@@ -140,6 +140,34 @@ describe('deepagents-plugins CLI', () => {
     expect(parsed.comparison.some((entry) => entry.capability === 'skills')).toBe(true);
   });
 
+  it('capabilities reports detection only when the manifest is missing', async () => {
+    const emptyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dap-cli-caps-'));
+    try {
+      const captured = io();
+      const code = await runCli(['--project', emptyDir, '--json', 'capabilities'], captured);
+      expect(code).toBe(0);
+      const parsed = JSON.parse(captured.lines.join('\n')) as {
+        comparison: unknown[];
+      };
+      expect(parsed.comparison).toEqual([]);
+    } finally {
+      await fs.rm(emptyDir, { recursive: true, force: true });
+    }
+  });
+
+  it('capabilities surfaces invalid-manifest failures', async () => {
+    const brokenDir = await fs.mkdtemp(path.join(os.tmpdir(), 'dap-cli-caps-bad-'));
+    try {
+      await fs.writeFile(path.join(brokenDir, 'deepagents.plugins.yaml'), 'plugins: not-a-list\n');
+      const captured = io();
+      const code = await runCli(['--project', brokenDir, '--json', 'capabilities'], captured);
+      expect(code).toBe(2);
+      expect(captured.errors.join('\n')).toMatch(/Invalid plugin manifest|Failed to parse/);
+    } finally {
+      await fs.rm(brokenDir, { recursive: true, force: true });
+    }
+  });
+
   it('unknown commands exit with configuration error', async () => {
     expect((await run(['definitely-not-a-command'])).code).toBe(2);
   });
