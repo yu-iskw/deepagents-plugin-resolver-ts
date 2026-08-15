@@ -12,52 +12,57 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build
+name: CI
 
 on:
   push:
     branches: [main]
+    paths-ignore: ["**/*.md", "docs/**", ".claude/**", ".cursor/**", ".vscode/**"]
   pull_request:
+    paths-ignore: ["**/*.md", "docs/**", ".claude/**", ".cursor/**", ".vscode/**"]
   workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
+  checks: write
 
 jobs:
-  build:
-    name: Run Build Process
+  ci:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
+    name: Test, analyze, and build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
       - name: Enable Corepack
         run: corepack enable
-
       - name: Harden Runner
         uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
-
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 11.0.5
-
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
           node-version-file: .node-version
           cache: pnpm
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Find unused code (Knip)
-        run: pnpm knip
-
       - name: Run build
         run: pnpm build
+      - name: Run unit tests
+        run: pnpm test:unit
+      - name: Find unused code (Knip)
+        run: pnpm knip
+      - name: Trunk Check
+        if: github.event_name != 'push'
+        uses: trunk-io/trunk-action@v1
+        with:
+          setup-deps: false
