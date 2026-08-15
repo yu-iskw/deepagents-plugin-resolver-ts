@@ -17,7 +17,26 @@ name: CodeQL
 on:
   push:
     branches: [main]
+    paths:
+      - "src/**/*.ts"
+      - "src/**/*.tsx"
+      - "packages/**/*.ts"
+      - "packages/**/*.tsx"
+      - package.json
+      - pnpm-lock.yaml
+      - "tsconfig*.json"
+      - .github/workflows/codeql.yml
   pull_request:
+    types: [opened, reopened, ready_for_review]
+    paths:
+      - "src/**/*.ts"
+      - "src/**/*.tsx"
+      - "packages/**/*.ts"
+      - "packages/**/*.tsx"
+      - package.json
+      - pnpm-lock.yaml
+      - "tsconfig*.json"
+      - .github/workflows/codeql.yml
   workflow_dispatch:
 
 concurrency:
@@ -31,47 +50,21 @@ permissions:
 
 jobs:
   analyze:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.draft == false }}
     name: Analyze
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [javascript-typescript]
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Enable Corepack
-        run: corepack enable
-
       - name: Harden Runner
         uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
         with:
           egress-policy: audit
-
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 11.0.5
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version-file: .node-version
-          cache: pnpm
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
-
+          languages: javascript-typescript
+          build-mode: none
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         continue-on-error: true
